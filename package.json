@@ -8,7 +8,8 @@
   ],
   "scripts": {
     "dev": "turbo dev --filter=@ai-voice-leads/web",
-    "build": "turbo build --filter=@ai-voice-leads/web",
+    "build": "npm run build:packages && npm run build -w @ai-voice-leads/web",
+    "build:packages": "npm run build -w @ai-voice-leads/shared && npm run build -w @ai-voice-leads/whatsapp && npm run build -w @ai-voice-leads/db && npm run build -w @ai-voice-leads/notifications && npm run build -w @ai-voice-leads/integrations && npm run build -w @ai-voice-leads/sequences",
     "lint": "turbo lint --filter=@ai-voice-leads/web",
     "typecheck": "npm run typecheck -w @ai-voice-leads/web",
     "test": "npm run test -w @ai-voice-leads/web",
