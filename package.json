@@ -1,0 +1,24 @@
+{
+  "name": "ai-voice-leads",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev --filter=@ai-voice-leads/web",
+    "build": "turbo build --filter=@ai-voice-leads/web",
+    "lint": "turbo lint --filter=@ai-voice-leads/web",
+    "typecheck": "npm run typecheck -w @ai-voice-leads/web",
+    "test": "npm run test -w @ai-voice-leads/web",
+    "db:migrate": "npx supabase db push",
+    "db:seed": "npx supabase db reset --no-seed && psql \"$DATABASE_URL\" -f supabase/seed.sql || echo 'Apply supabase/seed.sql via Supabase SQL editor if psql is unavailable'",
+    "db:generate": "echo 'Use: npx supabase gen types typescript --local > apps/web/src/types/database.generated.ts'",
+    "db:push": "npm run db:migrate"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  }
+}

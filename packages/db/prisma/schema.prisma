@@ -1,0 +1,376 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+enum SetupMode {
+  SELF_SERVE
+  MANAGED
+}
+
+enum Industry {
+  RESTAURANT
+  SERVICE
+  GENERAL
+  CLINIC
+  REAL_ESTATE
+  COACH
+  LEGAL
+  ECOMMERCE
+}
+
+enum PlaybookType {
+  RESTAURANT
+  SERVICE
+  GENERAL
+  CLINIC
+  REAL_ESTATE
+  COACH
+  LEGAL
+  ECOMMERCE
+}
+
+enum LeadStatus {
+  SUBMITTED
+  QUEUED
+  CALLING
+  COMPLETED
+  FAILED
+  DNC
+}
+
+enum CallDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum CallStatus {
+  RINGING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  NO_ANSWER
+  BUSY
+}
+
+enum MessageChannel {
+  WHATSAPP
+  SMS
+  EMAIL
+  VOICE
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum IntegrationProvider {
+  HUBSPOT
+  GOOGLE_SHEETS
+  WEBHOOK
+}
+
+enum SequenceTrigger {
+  FORM_SUBMIT
+  CALL_FAILED
+  CALL_NO_ANSWER
+}
+
+enum SequenceStepStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+model Organization {
+  id               String    @id @default(cuid())
+  clerkId          String?   @unique
+  name             String
+  slug             String    @unique
+  apiKey           String    @unique @default(cuid())
+  plan             Plan      @default(FREE)
+  setupMode        SetupMode @default(SELF_SERVE)
+  currency         String    @default("USD")
+  locale           String    @default("en-US")
+  whiteLabelDomain String?
+  onboardingStep   Int       @default(0)
+  stripeCustomerId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  profile      BusinessProfile?
+  playbooks    Playbook[]
+  phoneNumbers PhoneNumber[]
+  leads        Lead[]
+  callSessions CallSession[]
+  members      OrgMember[]
+  integrations Integration[]
+  sequences    Sequence[]
+  messages     Message[]
+  landingPages LandingPage[]
+}
+
+model OrgMember {
+  id        String   @id @default(cuid())
+  orgId     String
+  clerkId   String
+  email     String
+  role      String   @default("owner")
+  createdAt DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, clerkId])
+  @@index([clerkId])
+}
+
+model BusinessProfile {
+  id                String   @id @default(cuid())
+  orgId             String   @unique
+  industry          Industry @default(GENERAL)
+  timezone          String   @default("America/New_York")
+  greeting          String   @default("Hello, thank you for calling.")
+  hours             Json     @default("{}")
+  menuOrServices    Json     @default("[]")
+  faqs              Json     @default("[]")
+  preferredChannels Json     @default("[\"voice\",\"sms\"]")
+  whatsappNumber    String?
+  calendarUrl       String?
+  notifyEmail       String?
+  notifyPhone       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+model Playbook {
+  id              String       @id @default(cuid())
+  orgId           String
+  type            PlaybookType @default(GENERAL)
+  name            String
+  systemPrompt    String       @db.Text
+  fieldsToCollect Json         @default("[]")
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, isActive])
+}
+
+model PhoneNumber {
+  id           String   @id @default(cuid())
+  orgId        String
+  e164         String   @unique
+  twilioSid    String?
+  friendlyName String?
+  isPrimary    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+}
+
+model Lead {
+  id           String     @id @default(cuid())
+  orgId        String
+  name         String
+  phone        String
+  email        String?
+  message      String?    @db.Text
+  source       String     @default("embed_form")
+  consentText  String?    @db.Text
+  consentedAt  DateTime?
+  status       LeadStatus @default(SUBMITTED)
+  dnc          Boolean    @default(false)
+  metadata     Json       @default("{}")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  org          Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  callSessions CallSession[]
+  messages     Message[]
+  sequenceRuns SequenceRun[]
+
+  @@index([orgId, status])
+  @@index([phone])
+}
+
+model CallSession {
+  id            String        @id @default(cuid())
+  orgId         String
+  leadId        String?
+  direction     CallDirection
+  status        CallStatus    @default(RINGING)
+  twilioCallSid String?       @unique
+  fromNumber    String?
+  toNumber      String?
+  startedAt     DateTime      @default(now())
+  answeredAt    DateTime?
+  endedAt       DateTime?
+  durationSec   Int?
+  transcript    String?       @db.Text
+  extractedData Json?
+  errorMessage  String?
+
+  org     Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lead    Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  turns   CallTurn[]
+  summary CallSummary?
+
+  @@index([orgId, startedAt])
+  @@index([twilioCallSid])
+}
+
+model CallTurn {
+  id            String   @id @default(cuid())
+  callSessionId String
+  role          String
+  content       String   @db.Text
+  createdAt     DateTime @default(now())
+
+  callSession CallSession @relation(fields: [callSessionId], references: [id], onDelete: Cascade)
+
+  @@index([callSessionId, createdAt])
+}
+
+model CallSummary {
+  id            String   @id @default(cuid())
+  callSessionId String   @unique
+  intent        String?
+  customerName  String?
+  customerPhone String?
+  summary       String   @db.Text
+  structured    Json
+  urgency       String?
+  createdAt     DateTime @default(now())
+
+  callSession CallSession @relation(fields: [callSessionId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id        String           @id @default(cuid())
+  orgId     String
+  leadId    String
+  channel   MessageChannel
+  direction MessageDirection @default(OUTBOUND)
+  content   String           @db.Text
+  status    MessageStatus    @default(PENDING)
+  externalId String?
+  error     String?
+  createdAt DateTime         @default(now())
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lead Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@index([orgId])
+}
+
+model Integration {
+  id          String              @id @default(cuid())
+  orgId       String
+  provider    IntegrationProvider
+  enabled     Boolean             @default(true)
+  credentials Json                @default("{}")
+  config      Json                @default("{}")
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, provider])
+}
+
+model Sequence {
+  id        String          @id @default(cuid())
+  orgId     String
+  name      String
+  trigger   SequenceTrigger @default(FORM_SUBMIT)
+  steps     Json
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+
+  org  Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  runs SequenceRun[]
+
+  @@index([orgId, trigger])
+}
+
+model SequenceRun {
+  id         String   @id @default(cuid())
+  sequenceId String
+  leadId     String
+  status     String   @default("running")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sequence Sequence       @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  lead     Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  steps    SequenceStep[]
+
+  @@index([leadId])
+}
+
+model SequenceStep {
+  id            String             @id @default(cuid())
+  sequenceRunId String
+  channel       MessageChannel
+  delaySec      Int                @default(0)
+  template      String             @db.Text
+  status        SequenceStepStatus @default(PENDING)
+  runAt         DateTime
+  completedAt   DateTime?
+  error         String?
+
+  sequenceRun SequenceRun @relation(fields: [sequenceRunId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAt])
+}
+
+model LandingPage {
+  id        String   @id @default(cuid())
+  orgId     String
+  vertical  String
+  heroJson  Json     @default("{}")
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId])
+}
+
+model AuditRequest {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  business  String   @default("")
+  message   String   @default("") @db.Text
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,52 @@
+{
+  "name": "@ai-voice-leads/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@ai-voice-leads/db": "*",
+    "@ai-voice-leads/integrations": "*",
+    "@ai-voice-leads/notifications": "*",
+    "@ai-voice-leads/sequences": "*",
+    "@ai-voice-leads/shared": "*",
+    "@ai-voice-leads/whatsapp": "*",
+    "@hookform/resolvers": "^5.4.0",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.24.0",
+    "next": "^15.3.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.81.0",
+    "recharts": "^3.9.2",
+    "stripe": "^18.0.0",
+    "tailwind-merge": "^3.6.0",
+    "twilio": "^5.7.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
+    "@tailwindcss/postcss": "^4.3.2",
+    "@types/node": "^22.20.1",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^15.3.3",
+    "jsdom": "^27.0.1",
+    "postcss": "^8.5.19",
+    "tailwindcss": "^4.3.2",
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.9"
+  }
+}
