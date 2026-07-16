@@ -12,8 +12,18 @@ export function getWebhookBaseUrl(): string {
   );
 }
 
+const DEV_PLACEHOLDER_SECRET = "change-me-in-production";
+
+/**
+ * Authenticate legacy `/api/internal/*` routes.
+ * Rejects missing/placeholder secrets in production.
+ */
 export function verifyInternalAuth(request: Request): boolean {
-  const secret = process.env.INTERNAL_API_SECRET ?? "change-me-in-production";
+  const secret = process.env.INTERNAL_API_SECRET?.trim();
+  if (!secret || secret === DEV_PLACEHOLDER_SECRET) {
+    if (process.env.NODE_ENV === "production") return false;
+  }
+  const effective = secret || DEV_PLACEHOLDER_SECRET;
   const header = request.headers.get("authorization");
-  return header === `Bearer ${secret}`;
+  return header === `Bearer ${effective}`;
 }

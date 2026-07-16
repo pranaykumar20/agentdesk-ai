@@ -16,6 +16,14 @@
 6. Point Retell/Twilio/Stripe webhooks at `/api/webhooks/*`
 7. Confirm mock providers are disabled in production when using real keys
 
+## Production security checklist
+
+- Set `VOICE_PROVIDER=retell`, `TELEPHONY_PROVIDER=twilio`, `BILLING_PROVIDER=stripe` (mock webhook verify rejects in production)
+- Set a strong `INTERNAL_API_SECRET` (placeholder/`change-me-in-production` is rejected in production)
+- Set `SUPABASE_SERVICE_ROLE_KEY` for webhook idempotency + call sync
+- Prefer Retell call `metadata.organization_id`; use `DEFAULT_WEBHOOK_ORG_ID` only for single-tenant staging
+- Keep `LOCAL_DEMO_MODE=false`
+
 ## Legacy
 
 Do not deploy `apps/voice-worker` for AgentDesk Phase 1.

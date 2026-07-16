@@ -32,9 +32,21 @@ VOICE_PROVIDER=mock|retell
 TELEPHONY_PROVIDER=mock|twilio
 BILLING_PROVIDER=mock|stripe
 CALENDAR_PROVIDER=mock|google
+JOBS_PROVIDER=local
 ```
 
-Default for local development: all `mock`.
+Default for local development: all `mock` (jobs default `local`).
+
+## Implementations (Phase G)
+
+| Provider | File | Real mode behavior |
+|----------|------|--------------------|
+| Retell | `lib/providers/retell/voice.ts` | Create LLM+agent, test call, HMAC webhook verify |
+| Twilio | `lib/providers/twilio/telephony.ts` | Numbers, forwarding, SMS, request signature verify |
+| Stripe | `lib/providers/stripe/billing.ts` | Checkout, portal, webhook sync |
+| Jobs | `lib/jobs/` | Local microtask queue; handlers upsert calls from Retell |
+
+Webhook routes under `app/api/webhooks/*` use adapters + `lib/webhooks/idempotency.ts`.
 
 ## Legacy
 

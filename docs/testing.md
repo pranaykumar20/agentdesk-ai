@@ -1,12 +1,31 @@
 # Testing
 
-## Stack (Phase H)
+## Stack
 
-- Vitest — unit + data-access
-- Playwright — E2E journeys
-- SQL / Supabase — RLS policy tests
+| Layer | Tool | Status |
+|-------|------|--------|
+| Unit / route | Vitest (`apps/web`) | Active |
+| E2E journeys | Playwright | Planned |
+| RLS policies | SQL / Supabase | Planned |
 
-## Minimum E2E journeys
+## Vitest (current)
+
+Run: `npm test -w @ai-voice-leads/web`
+
+Covered areas include:
+
+- `can()` RBAC matrix (roles + appointments/knowledge)
+- Retell HMAC webhook verification
+- Retell webhook route (401 / duplicate / enqueue)
+- Webhook idempotency (memory fallback)
+- Local jobs microtask enqueue
+- Org cookie membership pick (`pickActiveOrgId`)
+- Retell call org resolution (`resolveOrganizationId`)
+- Internal API auth helper
+- Role-filtered dashboard nav
+- Demo data helpers (calls, billing, analytics, routing)
+
+## Planned E2E journeys (Playwright)
 
 1. Sign up + create organization
 2. Complete onboarding
@@ -23,4 +42,6 @@
 13. Stripe webhook updates subscription
 14. Retell webhook updates call status
 
-Phase A: foundation modules should include unit tests for `can()` permissions at minimum.
+## Planned RLS checks
+
+Cross-tenant `SELECT`/`UPDATE` denied for membership-scoped tables (see `docs/database.md` helpers).

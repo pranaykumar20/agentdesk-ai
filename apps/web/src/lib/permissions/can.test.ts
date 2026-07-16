@@ -22,6 +22,17 @@ describe("can()", () => {
     expect(can("AGENT", "update", "calls")).toBe(true);
     expect(can("AGENT", "invite", "members")).toBe(false);
   });
+
+  it("allows MANAGER CRUD on appointments/knowledge but not billing manage", () => {
+    expect(can("MANAGER", "create", "appointments")).toBe(true);
+    expect(can("MANAGER", "create", "knowledge")).toBe(true);
+    expect(can("MANAGER", "manage", "billing")).toBe(false);
+  });
+
+  it("denies VIEWER create on appointments and knowledge", () => {
+    expect(can("VIEWER", "create", "appointments")).toBe(false);
+    expect(can("VIEWER", "create", "knowledge")).toBe(false);
+  });
 });
 
 describe("roleAtLeast()", () => {

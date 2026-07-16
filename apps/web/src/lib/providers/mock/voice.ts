@@ -38,6 +38,7 @@ export const mockVoiceProvider: VoiceProvider = {
   },
 
   async verifyWebhook() {
-    return true;
+    // Never accept forged webhooks if mock is accidentally selected in production.
+    return process.env.NODE_ENV !== "production";
   },
 };

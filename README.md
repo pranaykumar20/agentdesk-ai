@@ -53,13 +53,16 @@ Leave provider env vars as `mock` (defaults in `.env.example`). The app runs wit
 ## Documentation
 
 - [Implementation plan](docs/implementation-plan.md)
-- [Architecture](docs/architecture.md)
+- [Architecture](docs/ARCHITECTURE.md)
 - [Database](docs/database.md)
 - [Permissions](docs/permissions.md)
 - [Providers](docs/provider-adapters.md)
 - [Webhooks](docs/webhooks.md)
+- [Testing](docs/testing.md)
+- [Routing engine](docs/routing-engine.md)
+- [Compliance](docs/COMPLIANCE.md)
 - [Deployment](docs/deployment.md)
 
 ## Phase status
 
-**Phases A–F** complete. Next: **Phase G — Providers and webhooks** (Retell + Twilio adapters, verified webhooks, idempotency, jobs).
+**Phases A–H** complete for Phase 1 scope. Playwright E2E and SQL RLS suites are documented follow-ups in [Testing](docs/testing.md).

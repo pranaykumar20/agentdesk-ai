@@ -309,6 +309,35 @@ export type Database = {
         Update: Record<string, unknown>;
         Relationships: [];
       };
+      call_events: {
+        Row: {
+          id: string;
+          organization_id: string;
+          call_id: string;
+          event_type: string;
+          payload: Json;
+          occurred_at: string;
+        };
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      webhook_events: {
+        Row: {
+          id: string;
+          provider: string;
+          idempotency_key: string;
+          event_type: string | null;
+          payload: Json;
+          status: string;
+          error_message: string | null;
+          processed_at: string | null;
+          created_at: string;
+        };
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

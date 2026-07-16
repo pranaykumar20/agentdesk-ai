@@ -36,6 +36,12 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen bg-background">
+      <a
+        href="#dashboard-main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"
+      >
+        Skip to content
+      </a>
       <Sidebar
         organizations={organizations}
         activeOrgId={activeOrgId}
@@ -48,7 +54,9 @@ export function AppShell({
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar title={title} orgName={orgName} onMenuClick={() => setMobileOpen(true)} />
-        <div className="flex-1 px-4 py-6 md:px-6">{children}</div>
+        <main id="dashboard-main" className="flex-1 px-4 py-6 md:px-6">
+          {children}
+        </main>
       </div>
     </div>
   );

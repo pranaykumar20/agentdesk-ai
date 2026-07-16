@@ -4,6 +4,7 @@ import { mockTelephonyProvider } from "./mock/telephony";
 import { mockVoiceProvider } from "./mock/voice";
 import { retellVoiceProvider } from "./retell/voice";
 import { stripeBillingProvider } from "./stripe/billing";
+import { twilioTelephonyProvider } from "./twilio/telephony";
 import type { BillingProvider, CalendarProvider, TelephonyProvider, VoiceProvider } from "./types";
 
 export type * from "./types";
@@ -16,10 +17,7 @@ export function getVoiceProvider(): VoiceProvider {
 
 export function getTelephonyProvider(): TelephonyProvider {
   const mode = process.env.TELEPHONY_PROVIDER?.trim() || "mock";
-  if (mode === "twilio") {
-    // Twilio adapter in Phase G — fall back to mock with warning via name
-    return mockTelephonyProvider;
-  }
+  if (mode === "twilio") return twilioTelephonyProvider;
   return mockTelephonyProvider;
 }
 

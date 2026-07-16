@@ -6,7 +6,10 @@ import type { Organization, OrganizationMember, UserRole } from "@/types/databas
 import { assertCan, can, type Action, type Resource } from "@/lib/permissions";
 import { ACTIVE_ORG_COOKIE, AUTH_ROUTES } from "./constants";
 import { getLocalDemoOrgContext, isLocalDemoMode, LOCAL_DEMO_USER_ID } from "./local-demo";
+import { pickActiveOrgId } from "./org-helpers";
 import { getSessionUser, requireUser } from "./session";
+
+export { pickActiveOrgId } from "./org-helpers";
 
 export type OrgContext = {
   organization: Organization;
@@ -86,14 +89,10 @@ export async function getActiveOrgId(userId: string): Promise<string | null> {
   const cookieStore = await cookies();
   const fromCookie = cookieStore.get(ACTIVE_ORG_COOKIE)?.value;
   const memberships = await listUserMemberships(userId);
-
-  if (memberships.length === 0) return null;
-
-  if (fromCookie && memberships.some((m) => m.organization_id === fromCookie)) {
-    return fromCookie;
-  }
-
-  return memberships[0]?.organization_id ?? null;
+  return pickActiveOrgId(
+    memberships.map((m) => m.organization_id),
+    fromCookie,
+  );
 }
 
 export async function setActiveOrgId(organizationId: string): Promise<void> {

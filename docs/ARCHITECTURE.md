@@ -57,7 +57,7 @@ Selection via env (`VOICE_PROVIDER`, etc.). Default local development uses mocks
 - RLS on all tenant tables
 - Webhook signature verification (Retell, Twilio, Stripe)
 - Service role key only on server (webhooks/admin jobs)
-- Integration secrets encrypted at rest
+- Integration secrets stored server-side (encrypt-at-rest planned; not yet implemented)
 - No secrets in client bundles or logs
 
 ## Deployment

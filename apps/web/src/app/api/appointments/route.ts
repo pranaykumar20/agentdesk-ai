@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentOrgContext, getSessionUser } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { createAppointment } from "@/modules/appointments/data";
 
 const bodySchema = z.object({
@@ -18,6 +19,9 @@ export async function POST(request: Request) {
 
   const ctx = await getCurrentOrgContext();
   if (!ctx) return NextResponse.json({ error: "Organization required" }, { status: 400 });
+  if (!can(ctx.role, "create", "appointments")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const parsed = bodySchema.safeParse(await request.json());
   if (!parsed.success) {

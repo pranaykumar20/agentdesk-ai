@@ -13,7 +13,7 @@ Demo seed data uses **Smile Dental Care** (Cincinnati). The application must not
 | Auth + DB | Supabase Auth + Postgres + RLS |
 | Voice | Retell AI (primary); Twilio telephony adapter |
 | UI | Next.js 15 App Router, Tailwind, shadcn/ui, Lucide |
-| Legacy | Clerk + Prisma removed from hot path; `apps/voice-worker` (Deepgram) deprecated |
+| Legacy | Supabase is source of truth; Clerk removed; Prisma remains only on legacy public/internal routes; `apps/voice-worker` (Deepgram) deprecated |
 
 ## Phases
 
@@ -58,13 +58,17 @@ Analytics page (range tabs, KPIs, intents, peak hours, CSV export), billing subs
 
 Modules: `modules/analytics`, `modules/billing`. **Verified:** typecheck, lint, tests pass.
 
-### Phase G — Providers and webhooks
+### Phase G — Providers and webhooks (complete)
 
-Retell + Twilio adapters, verified webhooks, idempotency, jobs.
+Retell voice adapter (API + HMAC verify), Twilio telephony adapter (numbers/SMS + signature verify), webhook routes with signature checks + `webhook_events` idempotency, local jobs provider for post-call sync, call upsert from Retell events. Stripe webhook also claims idempotency keys.
 
-### Phase H — Quality
+**Verified:** typecheck, lint, provider/idempotency/jobs unit tests.
 
-Unit/integration/E2E tests, a11y, security review, docs sync.
+### Phase H — Quality (complete)
+
+Security hardening (internal API secret, mock webhook reject in production, idempotency fail-closed, RBAC on appointments/knowledge APIs), expanded Vitest coverage (Retell webhook route, org cookie pick, call org resolve, nav role filter), dashboard a11y (`main` + skip link, role-filtered nav, FAQ aria), docs sync. Playwright E2E + SQL RLS suites remain planned follow-ups (see `docs/testing.md`).
+
+**Verified:** typecheck, lint, tests pass.
 
 ## Acceptance (Phase 1)
 

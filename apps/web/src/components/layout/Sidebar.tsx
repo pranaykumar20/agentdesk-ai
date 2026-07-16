@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AudioLines, X } from "lucide-react";
-import { DASHBOARD_NAV, isNavActive } from "@/lib/navigation/dashboard";
+import { filterNavForRole, isNavActive } from "@/lib/navigation/dashboard";
 import { PlanUsageCard } from "./PlanUsageCard";
 import { OrganizationSwitcher, type OrgOption } from "./OrganizationSwitcher";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,7 @@ export function Sidebar({
   onMobileClose: () => void;
 }) {
   const pathname = usePathname();
+  const navItems = filterNavForRole(activeRole);
 
   return (
     <>
@@ -66,7 +67,7 @@ export function Sidebar({
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Dashboard">
-          {DASHBOARD_NAV.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const active = isNavActive(pathname, item.href);
             return (

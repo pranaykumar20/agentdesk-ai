@@ -39,6 +39,6 @@ export const mockTelephonyProvider: TelephonyProvider = {
   },
 
   async verifyWebhook() {
-    return true;
+    return process.env.NODE_ENV !== "production";
   },
 };

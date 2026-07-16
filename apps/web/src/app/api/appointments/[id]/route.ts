@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentOrgContext, getSessionUser } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { updateAppointmentStatus } from "@/modules/appointments/data";
 import type { AppointmentStatus } from "@/modules/appointments/types";
 
@@ -17,6 +18,9 @@ export async function PATCH(
 
   const ctx = await getCurrentOrgContext();
   if (!ctx) return NextResponse.json({ error: "Organization required" }, { status: 400 });
+  if (!can(ctx.role, "update", "appointments")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { id } = await params;
   const parsed = bodySchema.safeParse(await request.json());
