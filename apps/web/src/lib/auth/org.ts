@@ -192,6 +192,19 @@ export async function createOrganizationForUser(input: {
   const baseSlug = slugify(input.name) || "organization";
   const slug = `${baseSlug}-${input.userId.replace(/-/g, "").slice(0, 8)}`;
 
+  // Ensure profile row exists (auth trigger can race / miss on some signups)
+  const { error: profileError } = await supabase.from("profiles").upsert(
+    {
+      id: input.userId,
+      email: input.email,
+      full_name: null,
+    },
+    { onConflict: "id" },
+  );
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
   const { data: organization, error: orgError } = await supabase
     .from("organizations")
     .insert({
