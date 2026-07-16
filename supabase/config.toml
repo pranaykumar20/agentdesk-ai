@@ -1,7 +1,7 @@
 # Minimal Supabase CLI config for AgentDesk AI local/remote migrations.
 # Run: npx supabase init (if needed) then supabase db push / migration up
 
-project_id = "agentdesk-ai"
+project_id = "qixozvlzdwmdjlzzlkpw"
 
 [api]
 enabled = true
