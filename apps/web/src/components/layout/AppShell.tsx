@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { DASHBOARD_NAV, isNavActive } from "@/lib/navigation/dashboard";
 import type { FeatureFlagKey } from "@/lib/feature-flags";
+import { AvaChatWidget } from "@/components/chat/AvaChatWidget";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import type { OrgOption } from "./OrganizationSwitcher";
@@ -75,6 +76,7 @@ export function AppShell({
           {children}
         </main>
       </div>
+      <AvaChatWidget surface="app" organizationId={activeOrgId} />
     </div>
   );
 }

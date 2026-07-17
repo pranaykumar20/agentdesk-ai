@@ -48,14 +48,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Last message must be from the user." }, { status: 400 });
     }
 
-    const { reply, model } = await generateMarketingChatReply(messages);
+    // Public endpoint is marketing-only — never inject org/account data here.
+    const { reply, model } = await generateMarketingChatReply(messages, "marketing");
     return NextResponse.json({ reply, model });
   } catch (error) {
     console.error("[public/chat]", error);
     return NextResponse.json(
       {
         error:
-          "The AI agent is temporarily unavailable. Please try again or book a demo at /audit.",
+          "The AI agent is temporarily unavailable. Please try again in a moment.",
       },
       { status: 502 },
     );
