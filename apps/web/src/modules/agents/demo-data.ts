@@ -87,9 +87,32 @@ function defaultAgents(organizationId: string): AiAgent[] {
       name: "Noah - Appointment Setter",
       roleTitle: "Appointment Setter",
       department: "Scheduling",
+      description:
+        "Specializes in booking, rescheduling, and confirming appointments — keeps the calendar full without double-books.",
+      personality: "Warm and efficient",
       performanceScore: 91.4,
-      tags: ["Scheduling"],
+      tags: ["Scheduling", "Appointments"],
       lifecycleStatus: "published",
+      capabilities: [
+        {
+          key: "book_appointments",
+          title: "Book and manage appointments",
+          description: "Schedules, reschedules, cancels.",
+          enabled: true,
+        },
+        {
+          key: "confirm_reminders",
+          title: "Send appointment confirmations",
+          description: "Confirms upcoming visits with callers.",
+          enabled: true,
+        },
+        {
+          key: "route_human",
+          title: "Route complex scheduling to staff",
+          description: "Escalates edge cases to the front desk.",
+          enabled: true,
+        },
+      ],
     }),
     buildAgent(organizationId, {
       id: "agent-mia",

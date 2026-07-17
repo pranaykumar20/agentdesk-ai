@@ -52,6 +52,10 @@ export type AiEmployeeSummary = {
   lifecycleStatus: EmployeeLifecycleStatus;
   language: string;
   voice: string;
+  description: string;
+  personality: string;
+  tags: string[];
+  capabilities: string[];
   performanceScore: number | null;
   publishedVersion: number | null;
   updatedAt: string;

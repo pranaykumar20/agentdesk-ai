@@ -46,7 +46,13 @@ function buildSystemPrompt(input: {
   page: PageContext | null;
   toolNotes: string;
 }): string {
-  return `You are Ava, the in-app AI assistant for AgentDesk AI.
+  return `You are Ava, an account intelligence assistant for the user's active AgentDesk organization.
+
+For every question, determine the exact intent and target module first.
+If the user asks for a count, filtered list, specific record, or field, answer that exact request directly using live permission-filtered account data. Do not return a generic module summary unless they asked for a summary.
+
+Use page context and conversation memory for references like "this", "it", "that one", "the queue", or "the appointment".
+When asked why something is happening or how to improve it, interpret available metrics and give practical next steps. Never invent missing data.
 
 Use tools for account-specific questions. Never invent metrics.
 Prefer tool results over the compact snapshot when both exist.
@@ -288,12 +294,19 @@ export async function* runAppAvaChat(input: {
 }): AsyncGenerator<AvaStreamEvent> {
   const page = resolvePageContext(input.pathname ?? null);
   const latest = input.messages[input.messages.length - 1]?.content ?? "";
+  const priorMessages = input.messages.slice(0, -1);
 
   yield { type: "meta", model: "pending", page };
 
   // Fast path: template answers for common metric questions (also LLM-down fallback).
+  // Pass prior turns so follow-ups like "what's special about it?" resolve to the last entity.
   if (input.preferTemplateFirst !== false) {
-    const template = await tryTemplateFallback(input.ctx, latest, input.pathname);
+    const template = await tryTemplateFallback(
+      input.ctx,
+      latest,
+      input.pathname,
+      priorMessages,
+    );
     if (template) {
       const guarded = guardAssistantReply(template.reply);
       for await (const chunk of streamTextChunks(guarded.reply)) {
@@ -361,25 +374,20 @@ export async function* runAppAvaChat(input: {
       toolsUsed = result.toolsUsed;
       proposedActions = result.proposedActions;
     } else {
-      const template = await tryTemplateFallback(input.ctx, latest, input.pathname);
-      if (!template) {
-        reply =
-          "Configure `OPENAI_API_KEY` or `CURSOR_API_KEY` for full Ava replies. Meanwhile open the relevant dashboard page for account data.";
-        model = "fallback-template";
-        usedFallback = true;
-      } else {
-        reply = template.reply;
-        model = template.model;
-        citations = template.citations;
-        toolsUsed = template.toolsUsed;
-        usedFallback = true;
-      }
+      const template =
+        (await tryTemplateFallback(input.ctx, latest, input.pathname, priorMessages)) ??
+        (await softUnavailableReply(input.ctx, input.pathname, latest));
+      reply = template.reply;
+      model = template.model;
+      citations = template.citations;
+      toolsUsed = template.toolsUsed;
+      usedFallback = true;
     }
   } catch {
-    // Prefer real account data / helpful guidance over a hard "unavailable" error.
+    // Prefer real account data over a hard "unavailable" error.
     const template =
-      (await tryTemplateFallback(input.ctx, latest, input.pathname)) ??
-      softUnavailableReply(input.pathname);
+      (await tryTemplateFallback(input.ctx, latest, input.pathname, priorMessages)) ??
+      (await softUnavailableReply(input.ctx, input.pathname, latest));
     reply = template.reply;
     model = template.model;
     citations = template.citations;
@@ -389,19 +397,14 @@ export async function* runAppAvaChat(input: {
 
   // LLM/Cursor sometimes returns blank content — never surface an empty bubble.
   if (!reply.trim()) {
-    const template = await tryTemplateFallback(input.ctx, latest, input.pathname);
-    if (template) {
-      reply = template.reply;
-      model = template.model;
-      citations = template.citations;
-      toolsUsed = template.toolsUsed;
-      usedFallback = true;
-    } else {
-      reply =
-        "I couldn’t generate a reply for that. Try rephrasing, or open the relevant page in the sidebar (Team, Calls, Billing, etc.).";
-      model = "fallback-template";
-      usedFallback = true;
-    }
+    const template =
+      (await tryTemplateFallback(input.ctx, latest, input.pathname, priorMessages)) ??
+      (await softUnavailableReply(input.ctx, input.pathname, latest));
+    reply = template.reply;
+    model = template.model;
+    citations = template.citations;
+    toolsUsed = template.toolsUsed;
+    usedFallback = true;
   }
 
   const guarded = guardAssistantReply(reply);

@@ -47,15 +47,15 @@ const SURFACE_CONFIG: Record<
   },
   app: {
     welcome:
-      "Hi — I'm Ava, your in-app AgentDesk assistant. Ask about your account data (calls, appointments, plan usage, AI employees, team) or how to use any part of the dashboard.",
+      "Hi — I'm Ava, your in-app AgentDesk assistant. Ask about anything in your account — calls, appointments, invoices, phone numbers, team, CRM, integrations, locations, workflows, and more — or how to use the dashboard.",
     starters: [
       "How many total calls do I have?",
-      "What's my plan usage?",
-      "List my AI employees",
-      "Who's on my team?",
+      "How many total invoices do I have?",
+      "How many phone numbers do I have?",
+      "What's my account overview?",
     ],
-    subtitle: "Account help & navigation",
-    placeholder: "Ask about your account…",
+    subtitle: "Full account context",
+    placeholder: "Ask about any account area…",
     autoOpen: false,
     storageKey: "ava-chat-app-dismissed",
   },

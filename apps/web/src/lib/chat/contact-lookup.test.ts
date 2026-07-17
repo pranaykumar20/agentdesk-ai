@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { OrgContext } from "@/lib/auth";
 import type { Organization, OrganizationMember } from "@/types/database";
-import { softUnavailableReply, tryTemplateFallback } from "./fallback";
+import { extractContactLookup, lookupContact } from "./contact-lookup";
 
 function makeCtx(): OrgContext {
   const organization = {
@@ -35,28 +35,30 @@ function makeCtx(): OrgContext {
   return { organization, membership, role: "OWNER" };
 }
 
-describe("tryTemplateFallback via account router", () => {
-  it("answers curly apostrophe team question", async () => {
-    const answer = await tryTemplateFallback(makeCtx(), "Who’s on my team?");
-    expect(answer).not.toBeNull();
-    expect(answer!.reply.toLowerCase()).toContain("team");
+describe("extractContactLookup", () => {
+  it("extracts name from phone-of questions", () => {
+    expect(extractContactLookup("what is the phone number of Noah Patel?")?.name).toBe(
+      "noah patel",
+    );
+    expect(
+      extractContactLookup("what is the WhatsApp phone number of Noah Patel?")?.preferChannel,
+    ).toBe("whatsapp");
   });
 
-  it("answers invoices typo", async () => {
-    const answer = await tryTemplateFallback(
-      makeCtx(),
-      "How many total Invocies do I have?",
-    );
-    expect(answer).not.toBeNull();
-    expect(answer!.reply.toLowerCase()).toContain("invoice");
+  it("does not treat inventory questions as contact lookups", () => {
+    expect(extractContactLookup("How many phone numbers do I have?")).toBeNull();
   });
 });
 
-describe("softUnavailableReply", () => {
-  it("offers clarifying next checks instead of a dead-end", async () => {
-    const answer = await softUnavailableReply(makeCtx(), "/dashboard/whatsapp", "hmm?");
-    expect(answer.reply.toLowerCase()).toMatch(/not fully sure|what i can look up|response rate/);
-    expect(answer.reply).toMatch(/WhatsApp|Contact Center|Calls/i);
-    expect(answer.reply).not.toMatch(/try asking one of those directly/i);
+describe("lookupContact", () => {
+  it("returns Noah Patel WhatsApp phone", async () => {
+    const answer = await lookupContact(
+      makeCtx(),
+      "what is the WhatsApp phone number of Noah Patel?",
+    );
+    expect(answer).not.toBeNull();
+    expect(answer!.reply).toMatch(/Noah Patel/i);
+    expect(answer!.reply).toMatch(/0144|•••• 0144|\(513\)/);
+    expect(answer!.hits.some((h) => h.source === "whatsapp" && h.phone)).toBe(true);
   });
 });

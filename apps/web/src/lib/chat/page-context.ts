@@ -11,7 +11,19 @@ export type PageContext = {
     | "integrations"
     | "knowledge"
     | "analytics"
+    | "revenue"
     | "settings"
+    | "phone-numbers"
+    | "locations"
+    | "workflows"
+    | "voice-flows"
+    | "contact-center"
+    | "live-monitor"
+    | "call-queues"
+    | "sms"
+    | "whatsapp"
+    | "training"
+    | "routing"
     | "other";
   hint: string;
 };
@@ -74,7 +86,12 @@ export function resolvePageContext(pathname: string | null): PageContext | null 
       hint: "Prefer knowledge base document counts.",
     },
     {
-      match: /^\/dashboard\/(analytics|revenue)/,
+      match: /^\/dashboard\/revenue/,
+      area: "revenue",
+      hint: "Prefer Revenue & ROI metrics, sources, and top AI agents.",
+    },
+    {
+      match: /^\/dashboard\/analytics/,
       area: "analytics",
       hint: "Prefer analytics / ROI high-level metrics.",
     },
@@ -82,6 +99,61 @@ export function resolvePageContext(pathname: string | null): PageContext | null 
       match: /^\/dashboard\/settings/,
       area: "settings",
       hint: "Prefer org settings visible in the UI.",
+    },
+    {
+      match: /^\/dashboard\/phone-numbers/,
+      area: "phone-numbers",
+      hint: "Prefer phone number inventory and assignment.",
+    },
+    {
+      match: /^\/dashboard\/locations/,
+      area: "locations",
+      hint: "Prefer location counts and status.",
+    },
+    {
+      match: /^\/dashboard\/workflows/,
+      area: "workflows",
+      hint: "Prefer workflow counts and publish status.",
+    },
+    {
+      match: /^\/dashboard\/voice-flows/,
+      area: "voice-flows",
+      hint: "Prefer voice flow metrics.",
+    },
+    {
+      match: /^\/dashboard\/contact-center/,
+      area: "contact-center",
+      hint: "Prefer contact center inbox metrics.",
+    },
+    {
+      match: /^\/dashboard\/live-monitor/,
+      area: "live-monitor",
+      hint: "Prefer live call monitor metrics.",
+    },
+    {
+      match: /^\/dashboard\/call-queues/,
+      area: "call-queues",
+      hint: "Prefer call queue summary.",
+    },
+    {
+      match: /^\/dashboard\/sms-campaigns/,
+      area: "sms",
+      hint: "Prefer SMS campaign summary.",
+    },
+    {
+      match: /^\/dashboard\/whatsapp/,
+      area: "whatsapp",
+      hint: "Prefer WhatsApp summary.",
+    },
+    {
+      match: /^\/dashboard\/training/,
+      area: "training",
+      hint: "Prefer training center summary.",
+    },
+    {
+      match: /^\/dashboard\/routing-rules/,
+      area: "routing",
+      hint: "Prefer routing rules.",
     },
   ];
 

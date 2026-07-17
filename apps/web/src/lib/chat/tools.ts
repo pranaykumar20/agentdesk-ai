@@ -7,16 +7,25 @@ import {
   getUpcomingAppointments,
   listAppointments,
 } from "@/modules/appointments/data";
-import { getUsageSnapshot } from "@/modules/billing/data";
+import { getUsageSnapshot, listInvoices } from "@/modules/billing/data";
 import { listCalls } from "@/modules/calls/data";
 import { getCrmPipelineSummary } from "@/modules/crm/data";
 import { getIntegrationMetrics, listIntegrations } from "@/modules/integrations/data";
 import { getKnowledgeMetrics } from "@/modules/knowledge/data";
+import { getPhoneMetrics, listPhoneNumbers } from "@/modules/phone-numbers/data";
 import { listTeamMembers, getTeamMetrics } from "@/modules/team/data";
 import { maskPhone } from "./account-context";
+import {
+  ACCOUNT_SECTIONS,
+  fetchAccountOverview,
+  fetchAccountSection,
+  formatSectionReply,
+  type AccountSectionId,
+} from "./account-sections";
 import type { AvaCitation } from "./citations";
 import type { ProposedAction } from "./actions";
 import { createProposedAction } from "./actions";
+import { lookupEntity } from "./entity-lookup";
 
 export type ToolExecutionResult = {
   name: string;
@@ -70,6 +79,14 @@ export const AVA_TOOL_DEFINITIONS = [
     function: {
       name: "get_billing_usage",
       description: "Plan name and minutes used/included.",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "list_invoices",
+      description: "List invoices for the active organization (counts and recent invoice summaries).",
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
@@ -132,6 +149,56 @@ export const AVA_TOOL_DEFINITIONS = [
       name: "get_knowledge_metrics",
       description: "Knowledge base document counts.",
       parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "list_phone_numbers",
+      description: "Phone number count and masked list for the active organization.",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "get_account_section",
+      description:
+        "Fetch any dashboard account section (calls, appointments, invoices, phone_numbers, team, crm, integrations, locations, workflows, voice_flows, contact_center, live_monitor, call_queues, sms, whatsapp, training, roi, routing, settings, knowledge, billing, ai_employees, overview).",
+      parameters: {
+        type: "object",
+        required: ["section"],
+        properties: {
+          section: { type: "string", enum: [...ACCOUNT_SECTIONS] },
+          includeEmails: { type: "boolean" },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "get_account_overview",
+      description: "Compact live overview across major account areas.",
+      parameters: { type: "object", properties: {}, additionalProperties: false },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "lookup_account_entity",
+      description:
+        "Look up a named account entity (queue, bot, training job, AI employee, integration, etc.) and optional attribute like avg wait or accuracy.",
+      parameters: {
+        type: "object",
+        required: ["name"],
+        properties: {
+          name: { type: "string" },
+          attribute: { type: "string" },
+        },
+        additionalProperties: false,
+      },
     },
   },
   {
@@ -257,6 +324,30 @@ export async function executeAvaTool(
         citations: [{ label: "Billing", path: "/dashboard/billing", tool: name }],
       };
     }
+    case "list_invoices": {
+      if (!can(role, "read", "billing")) return deny(name, "billing");
+      const invoices = await listInvoices(orgId);
+      return {
+        name,
+        ok: true,
+        data: {
+          total: invoices.length,
+          paid: invoices.filter((i) => i.status === "paid").length,
+          open: invoices.filter((i) => i.status === "open").length,
+          void: invoices.filter((i) => i.status === "void").length,
+          draft: invoices.filter((i) => i.status === "draft").length,
+          recent: invoices.slice(0, 8).map((i) => ({
+            number: i.number,
+            status: i.status,
+            amountUsd: i.amountUsd,
+            currency: i.currency,
+            periodLabel: i.periodLabel,
+            issuedAt: i.issuedAt,
+          })),
+        },
+        citations: [{ label: "Billing", path: "/dashboard/billing", tool: name }],
+      };
+    }
     case "list_ai_employees": {
       if (!can(role, "read", "agents")) return deny(name, "agents");
       const [metrics, employees] = await Promise.all([
@@ -375,6 +466,102 @@ export async function executeAvaTool(
         ok: true,
         data: metrics,
         citations: [{ label: "Knowledge Base", path: "/dashboard/knowledge-base", tool: name }],
+      };
+    }
+    case "list_phone_numbers": {
+      if (!can(role, "read", "phone_numbers")) return deny(name, "phone_numbers");
+      const [metrics, numbers] = await Promise.all([
+        getPhoneMetrics(orgId),
+        listPhoneNumbers(orgId),
+      ]);
+      return {
+        name,
+        ok: true,
+        data: {
+          metrics,
+          numbers: numbers.map((n) => ({
+            e164: maskPhone(n.e164),
+            friendlyName: n.friendlyName,
+            status: n.status,
+            assignedTo: n.assignedTo,
+            location: n.location,
+          })),
+        },
+        citations: [{ label: "Phone Numbers", path: "/dashboard/phone-numbers", tool: name }],
+      };
+    }
+    case "get_account_section": {
+      const section = asString(rawArgs.section) as AccountSectionId;
+      if (!ACCOUNT_SECTIONS.includes(section)) {
+        return { name, ok: false, error: `Unknown section: ${section}`, citations: [] };
+      }
+      const result = await fetchAccountSection(ctx, section, {
+        includeEmails: asBool(rawArgs.includeEmails),
+      });
+      if (result.denied) {
+        return {
+          name,
+          ok: false,
+          error: `Permission denied for ${section}`,
+          citations: result.citations,
+        };
+      }
+      return {
+        name,
+        ok: result.ok,
+        data: {
+          section,
+          formatted: formatSectionReply(result),
+          raw: result.data,
+        },
+        error: result.error,
+        citations: result.citations,
+      };
+    }
+    case "get_account_overview": {
+      const overview = await fetchAccountOverview(ctx);
+      return {
+        name,
+        ok: true,
+        data: { formatted: overview.reply },
+        citations: overview.citations,
+      };
+    }
+    case "lookup_account_entity": {
+      const entityName = asString(rawArgs.name).trim();
+      if (!entityName) {
+        return { name, ok: false, error: "name is required", citations: [] };
+      }
+      const attribute = asString(rawArgs.attribute).trim() || undefined;
+      const result = await lookupEntity(ctx, attribute ? `${attribute} of ${entityName}` : entityName, {
+        name: entityName,
+        attribute,
+      });
+      if (!result) {
+        return {
+          name,
+          ok: false,
+          error: `No entity found for ${entityName}`,
+          citations: [],
+        };
+      }
+      return {
+        name,
+        ok: true,
+        data: {
+          formatted: result.reply,
+          entity: result.entity
+            ? {
+                id: result.entity.id,
+                name: result.entity.name,
+                type: result.entity.type,
+                path: result.entity.path,
+                fields: result.entity.fields,
+              }
+            : null,
+          attribute: result.attribute,
+        },
+        citations: result.citations,
       };
     }
     case "propose_invite_team_member": {
