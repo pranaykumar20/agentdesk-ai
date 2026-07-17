@@ -10,6 +10,7 @@ import {
   Home,
   Building,
 } from "lucide-react";
+import type { IconToneKey } from "./icon-tones";
 
 export type IndustryTemplate = {
   slug: string;
@@ -19,6 +20,7 @@ export type IndustryTemplate = {
   capabilities: string[];
   description: string;
   icon: LucideIcon;
+  tone: IconToneKey;
 };
 
 export const INDUSTRIES: IndustryTemplate[] = [
@@ -30,6 +32,7 @@ export const INDUSTRIES: IndustryTemplate[] = [
     callTypes: ["New patient booking", "Insurance questions", "Reschedule / cancel", "Office hours"],
     capabilities: ["Appointment booking", "Insurance FAQs", "After-hours intake", "Staff transfer"],
     icon: Smile,
+    tone: "sky",
   },
   {
     slug: "medical",
@@ -39,6 +42,7 @@ export const INDUSTRIES: IndustryTemplate[] = [
     callTypes: ["Appointment requests", "Refills & follow-ups", "Directions", "Billing"],
     capabilities: ["Scheduling", "Triage routing", "Callback capture", "Multi-location"],
     icon: HeartPulse,
+    tone: "rose",
   },
   {
     slug: "insurance",
@@ -48,6 +52,7 @@ export const INDUSTRIES: IndustryTemplate[] = [
     callTypes: ["Quote requests", "Claims questions", "Policy changes", "Renewals"],
     capabilities: ["Lead qualification", "CRM sync", "Appointment booking", "SMS follow-up"],
     icon: Shield,
+    tone: "blue",
   },
   {
     slug: "auto-repair",
@@ -57,6 +62,7 @@ export const INDUSTRIES: IndustryTemplate[] = [
     callTypes: ["Service booking", "Status updates", "Estimates", "Towing / emergencies"],
     capabilities: ["Job scheduling", "Status FAQs", "Callback requests", "Department routing"],
     icon: Car,
+    tone: "orange",
   },
   {
     slug: "home-services",
@@ -66,6 +72,7 @@ export const INDUSTRIES: IndustryTemplate[] = [
     callTypes: ["Emergency service", "Estimate requests", "Scheduling", "Warranty"],
     capabilities: ["Dispatch routing", "Lead capture", "After-hours booking", "SMS confirmation"],
     icon: Wrench,
+    tone: "amber",
   },
   {
     slug: "restaurants",
@@ -75,6 +82,7 @@ export const INDUSTRIES: IndustryTemplate[] = [
     callTypes: ["Reservations", "Hours & location", "Catering", "Order questions"],
     capabilities: ["Reservation intake", "FAQ answering", "Message taking", "Staff transfer"],
     icon: UtensilsCrossed,
+    tone: "pink",
   },
   {
     slug: "law",
@@ -84,6 +92,7 @@ export const INDUSTRIES: IndustryTemplate[] = [
     callTypes: ["New client intake", "Case status", "Consult booking", "Referrals"],
     capabilities: ["Structured intake", "Attorney routing", "Conflict screening prompts", "Summaries"],
     icon: Scale,
+    tone: "slate",
   },
   {
     slug: "real-estate",
@@ -93,6 +102,7 @@ export const INDUSTRIES: IndustryTemplate[] = [
     callTypes: ["Showing requests", "Listing questions", "Buyer qualification", "Open house"],
     capabilities: ["Lead qualification", "Calendar booking", "Agent routing", "Follow-up SMS"],
     icon: Home,
+    tone: "teal",
   },
   {
     slug: "property-management",
@@ -102,6 +112,7 @@ export const INDUSTRIES: IndustryTemplate[] = [
     callTypes: ["Maintenance requests", "Rent questions", "Move-in / move-out", "Emergencies"],
     capabilities: ["Ticket capture", "Emergency escalation", "FAQ policies", "Vendor routing"],
     icon: Building,
+    tone: "indigo",
   },
 ];
 

@@ -1,6 +1,7 @@
 import { requireOrg, listUserOrganizations, getSessionUser } from "@/lib/auth";
 import { AppShell } from "@/components/layout/AppShell";
 import { getUsageSnapshot } from "@/modules/billing/data";
+import { getOrgFeatureFlags } from "@/modules/feature-flags/data";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const ctx = await requireOrg();
   const user = await getSessionUser();
   const organizations = user ? await listUserOrganizations(user.id) : [];
-  const usage = await getUsageSnapshot(ctx.organization.id);
+  const [usage, featureFlags] = await Promise.all([
+    getUsageSnapshot(ctx.organization.id),
+    getOrgFeatureFlags(ctx.organization.id),
+  ]);
 
   return (
     <AppShell
@@ -19,6 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       planName={usage.planName}
       minutesUsed={usage.minutesUsed}
       minutesIncluded={usage.minutesIncluded}
+      featureFlags={featureFlags}
     >
       {children}
     </AppShell>

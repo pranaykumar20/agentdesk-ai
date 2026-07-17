@@ -4,6 +4,8 @@ import { ArrowRight } from "lucide-react";
 import { SectionHeading } from "@/components/marketing/SectionHeading";
 import { CtaBand } from "@/components/marketing/CtaBand";
 import { INDUSTRIES } from "@/lib/marketing/industries";
+import { iconTone } from "@/lib/marketing/icon-tones";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Industries",
@@ -33,13 +35,20 @@ export default function IndustriesPage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {INDUSTRIES.map((industry) => {
               const Icon = industry.icon;
+              const tone = iconTone(industry.tone);
               return (
                 <article
                   key={industry.slug}
                   id={industry.slug}
                   className="scroll-mt-24 flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary">
+                  <div
+                    className={cn(
+                      "flex h-11 w-11 items-center justify-center rounded-xl",
+                      tone.bg,
+                      tone.icon,
+                    )}
+                  >
                     <Icon className="h-5 w-5" aria-hidden />
                   </div>
                   <h2 className="mt-4 text-lg font-semibold text-foreground">{industry.name}</h2>

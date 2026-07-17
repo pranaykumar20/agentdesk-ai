@@ -5,6 +5,8 @@ import { SectionHeading } from "@/components/marketing/SectionHeading";
 import { CtaBand } from "@/components/marketing/CtaBand";
 import { FEATURES, HOW_IT_WORKS } from "@/lib/marketing/features";
 import { LANDING_STATS } from "@/lib/marketing/landing";
+import { iconTone } from "@/lib/marketing/icon-tones";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Features",
@@ -41,6 +43,7 @@ export default function FeaturesPage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((feature) => {
               const Icon = feature.icon;
+              const tone = iconTone(feature.tone);
               const id = feature.href.split("#")[1];
               return (
                 <article
@@ -48,7 +51,13 @@ export default function FeaturesPage() {
                   id={id}
                   className="scroll-mt-24 rounded-2xl border border-border bg-card p-6 shadow-sm"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-primary">
+                  <div
+                    className={cn(
+                      "flex h-11 w-11 items-center justify-center rounded-xl",
+                      tone.bg,
+                      tone.icon,
+                    )}
+                  >
                     <Icon className="h-5 w-5" aria-hidden />
                   </div>
                   <h2 className="mt-4 text-lg font-semibold text-foreground">{feature.title}</h2>

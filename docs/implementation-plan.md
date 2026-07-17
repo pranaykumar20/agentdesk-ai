@@ -74,6 +74,14 @@ Security hardening (internal API secret, mock webhook reject in production, idem
 
 See product brief: 16 screens, RLS isolation, roles, mock/real providers, webhook verification, typecheck/lint/tests green, docs current.
 
+## Phase 2 — AI Employee Platform (UI shell complete)
+
+See [`docs/phase-2-plan.md`](./phase-2-plan.md).
+
+- **2A Foundation:** migration `20260717000009_phase2_foundation.sql`, expanded RBAC resources, feature flags, grouped nav.
+- **2B–2J:** Dashboard modules shipped with demo data (AI Employees, CRM, Locations, Contact Center, Queues, Live Monitor, Workflows, Voice Flows, SMS, WhatsApp, Training, Revenue/ROI, Marketplace, Super Admin).
+- **Follow-ups:** Wire demo stores to Supabase persistence; Retell/Twilio execution for builders; Playwright E2E.
+
 ## Working rules
 
 - Implement incrementally; verify TypeScript, lint, and tests after each major step

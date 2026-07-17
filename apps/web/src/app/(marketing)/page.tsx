@@ -8,6 +8,8 @@ import { HERO_CALLOUTS, LANDING_FEATURES, LANDING_STATS, TRUST_LOGOS } from "@/l
 import { INDUSTRIES } from "@/lib/marketing/industries";
 import { HOW_IT_WORKS } from "@/lib/marketing/features";
 import { PRICING_PLANS } from "@/lib/marketing/pricing";
+import { iconTone } from "@/lib/marketing/icon-tones";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "AgentDesk AI — Never miss a call. AI handles it all.",
@@ -69,12 +71,21 @@ export default function LandingPage() {
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {HERO_CALLOUTS.map((item) => {
                 const Icon = item.icon;
+                const tone = iconTone(item.tone);
                 return (
                   <div
                     key={item.title}
                     className="rounded-xl border border-border bg-card/90 p-4 shadow-sm backdrop-blur"
                   >
-                    <Icon className="h-5 w-5 text-primary" aria-hidden />
+                    <div
+                      className={cn(
+                        "flex h-9 w-9 items-center justify-center rounded-lg",
+                        tone.bg,
+                        tone.icon,
+                      )}
+                    >
+                      <Icon className="h-5 w-5" aria-hidden />
+                    </div>
                     <p className="mt-2 text-sm font-semibold text-foreground">{item.title}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
                   </div>
@@ -112,9 +123,16 @@ export default function LandingPage() {
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {LANDING_FEATURES.map((feature) => {
               const Icon = feature.icon;
+              const tone = iconTone(feature.tone);
               return (
                 <div key={feature.title} className="rounded-2xl border border-border bg-card p-6">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-primary">
+                  <div
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-lg",
+                      tone.bg,
+                      tone.icon,
+                    )}
+                  >
                     <Icon className="h-5 w-5" aria-hidden />
                   </div>
                   <h3 className="mt-4 text-lg font-semibold text-foreground">{feature.title}</h3>
@@ -164,13 +182,22 @@ export default function LandingPage() {
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {INDUSTRIES.slice(0, 6).map((industry) => {
               const Icon = industry.icon;
+              const tone = iconTone(industry.tone);
               return (
                 <Link
                   key={industry.slug}
                   href={`/industries#${industry.slug}`}
                   className="rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40"
                 >
-                  <Icon className="h-5 w-5 text-primary" aria-hidden />
+                  <div
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-lg",
+                      tone.bg,
+                      tone.icon,
+                    )}
+                  >
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </div>
                   <h3 className="mt-3 font-semibold text-foreground">{industry.name}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{industry.description}</p>
                 </Link>

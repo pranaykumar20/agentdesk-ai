@@ -14,6 +14,19 @@ export const RESOURCES = [
   "integrations",
   "analytics",
   "settings",
+  "workflows",
+  "voice_flows",
+  "marketplace",
+  "crm",
+  "locations",
+  "contact_center",
+  "call_queues",
+  "sms_campaigns",
+  "whatsapp",
+  "live_monitor",
+  "training",
+  "roi",
+  "platform",
 ] as const;
 export type Resource = (typeof RESOURCES)[number];
 

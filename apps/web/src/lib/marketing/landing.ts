@@ -11,27 +11,37 @@ import {
   BarChart3,
   Puzzle,
 } from "lucide-react";
+import type { IconToneKey } from "./icon-tones";
 
-export const HERO_CALLOUTS: Array<{ title: string; description: string; icon: LucideIcon }> = [
+export const HERO_CALLOUTS: Array<{
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  tone: IconToneKey;
+}> = [
   {
     title: "24/7 Availability",
     description: "Always on, never misses a call.",
     icon: Clock,
+    tone: "emerald",
   },
   {
     title: "Smart Call Routing",
     description: "Routes calls to the right person or department.",
     icon: GitBranch,
+    tone: "indigo",
   },
   {
     title: "Appointments & Booking",
     description: "Books, reschedules, and cancels automatically.",
     icon: CalendarPlus,
+    tone: "amber",
   },
   {
     title: "Call Summaries",
     description: "AI summaries and transcripts for every call.",
     icon: FileText,
+    tone: "sky",
   },
 ];
 
@@ -49,36 +59,43 @@ export const LANDING_FEATURES: Array<{
   title: string;
   description: string;
   icon: LucideIcon;
+  tone: IconToneKey;
 }> = [
   {
     title: "AI Phone Answering",
     description: "Natural conversations that sound human.",
     icon: Phone,
+    tone: "violet",
   },
   {
     title: "Lead Qualification",
     description: "Qualifies and captures high-quality leads.",
     icon: UserPlus,
+    tone: "sky",
   },
   {
     title: "Appointment Booking",
     description: "Books appointments and sends reminders.",
     icon: Calendar,
+    tone: "amber",
   },
   {
     title: "Smart Routing",
     description: "Routes calls based on rules and availability.",
     icon: Share2,
+    tone: "indigo",
   },
   {
     title: "Analytics & Reports",
     description: "Track performance and measure results.",
     icon: BarChart3,
+    tone: "teal",
   },
   {
     title: "Easy Integrations",
     description: "Works with your favorite tools and CRM.",
     icon: Puzzle,
+    tone: "orange",
   },
 ];
 

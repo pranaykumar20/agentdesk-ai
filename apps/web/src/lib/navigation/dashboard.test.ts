@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { filterNavForRole, isNavActive } from "./dashboard";
+import { DEFAULT_FEATURE_FLAGS } from "@/lib/feature-flags";
 
 describe("isNavActive", () => {
   it("matches dashboard root exactly", () => {
@@ -20,6 +21,7 @@ describe("filterNavForRole", () => {
     expect(hrefs).toContain("/dashboard");
     expect(hrefs).toContain("/dashboard/calls");
     expect(hrefs).toContain("/dashboard/team");
+    expect(hrefs).toContain("/dashboard/ai-employees");
     expect(hrefs).not.toContain("/dashboard/billing");
     expect(hrefs).not.toContain("/dashboard/settings");
     expect(hrefs).not.toContain("/dashboard/routing-rules");
@@ -29,5 +31,17 @@ describe("filterNavForRole", () => {
     const hrefs = filterNavForRole("OWNER").map((i) => i.href);
     expect(hrefs).toContain("/dashboard/billing");
     expect(hrefs).toContain("/dashboard/team");
+    expect(hrefs).toContain("/dashboard/ai-employees");
+  });
+
+  it("hides flagged-off modules", () => {
+    const hrefs = filterNavForRole("OWNER", {
+      ...DEFAULT_FEATURE_FLAGS,
+      workflows: false,
+      contact_center: false,
+    }).map((i) => i.href);
+    expect(hrefs).not.toContain("/dashboard/workflows");
+    expect(hrefs).not.toContain("/dashboard/contact-center");
+    expect(hrefs).toContain("/dashboard/ai-employees");
   });
 });
