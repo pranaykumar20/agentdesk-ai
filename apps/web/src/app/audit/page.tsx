@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { ArrowRight, Check, Clock3, LineChart, MessagesSquare } from "lucide-react";
 import { MarketingLayout } from "@/components/marketing/MarketingLayout";
 import { AuditForm } from "@/components/marketing/AuditForm";
@@ -8,9 +9,9 @@ import { iconTone, type IconToneKey } from "@/lib/marketing/icon-tones";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Free Revenue Audit",
+  title: "Book a Demo",
   description:
-    "Book a free 30-minute strategy call. We map your lead flow, identify gaps, and show you what to automate.",
+    "Book a demo of AgentDesk AI. See how AI employees answer calls, qualify leads, book appointments, and hand off to humans.",
 };
 
 const CAL_EMBED_URL = process.env.NEXT_PUBLIC_CAL_EMBED_URL?.trim();
@@ -50,14 +51,14 @@ export default function AuditPage() {
       <section className="relative overflow-hidden border-b border-border bg-[linear-gradient(180deg,#ffffff_0%,#eef2ff_45%,#f9fafb_100%)]">
         <div className="mx-auto max-w-6xl px-6 py-16 md:py-20">
           <p className="inline-flex rounded-full bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-            Free revenue audit
+            Book a demo
           </p>
           <h1 className="mt-5 max-w-3xl text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-            Find where your business is leaking revenue
+            See how an AI workforce can run your customer conversations
           </h1>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            30-minute strategy call. We map your lead flow, identify gaps, and show you exactly what
-            to automate — no obligation.
+            30-minute walkthrough of AI employees, human handoff, omnichannel inbox, and ROI
+            reporting — tailored to your industry.
           </p>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
@@ -137,7 +138,7 @@ export default function AuditPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Book your audit</CardTitle>
+              <CardTitle className="text-xl">Book your demo</CardTitle>
               <CardDescription>
                 {CAL_EMBED_URL
                   ? "Pick a time that works for you."
@@ -149,10 +150,12 @@ export default function AuditPage() {
                 <iframe
                   src={CAL_EMBED_URL}
                   className="h-[480px] w-full rounded-xl border border-border bg-background"
-                  title="Book audit"
+                  title="Book demo"
                 />
               ) : (
-                <AuditForm />
+                <Suspense fallback={<p className="text-sm text-muted-foreground">Loading form…</p>}>
+                  <AuditForm />
+                </Suspense>
               )}
             </CardContent>
           </Card>

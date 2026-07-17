@@ -9,7 +9,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:a11y": "playwright test e2e/homepage.spec.ts -g accessibility"
   },
   "dependencies": {
     "@ai-voice-leads/db": "*",
@@ -18,6 +20,7 @@
     "@ai-voice-leads/sequences": "*",
     "@ai-voice-leads/shared": "*",
     "@ai-voice-leads/whatsapp": "*",
+    "@cursor/sdk": "^1.0.18",
     "@hookform/resolvers": "^5.4.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.8",
@@ -28,6 +31,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.81.0",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.9.2",
     "stripe": "^18.0.0",
     "tailwind-merge": "^3.6.0",
@@ -35,7 +39,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@eslint/eslintrc": "^3.3.6",
+    "@playwright/test": "^1.52.0",
     "@tailwindcss/postcss": "^4.3.2",
     "@types/node": "^22.20.1",
     "@types/react": "^19.1.6",

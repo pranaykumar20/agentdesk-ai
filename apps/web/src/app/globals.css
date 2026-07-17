@@ -1,5 +1,30 @@
 @import "tailwindcss";
 
+@layer utilities {
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+}
+
 /* AgentDesk AI design tokens — light B2B SaaS */
 :root {
   --background: #f9fafb;
@@ -142,5 +167,39 @@
   .marketing-nav,
   .marketing-footer {
     /* superseded by Tailwind components; kept for class references */
+  }
+
+  /* Shared hover affordance for landing-page cards */
+  .marketing-card {
+    @apply transition-[transform,box-shadow,border-color,background-color] duration-200 ease-out;
+  }
+
+  .marketing-card:hover {
+    @apply -translate-y-0.5 border-primary/35 bg-white shadow-[0_18px_44px_-22px_rgba(92,78,229,0.4)];
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marketing-card:hover {
+      transform: none;
+    }
+  }
+}
+
+@keyframes integrations-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.integrations-marquee {
+  animation: integrations-marquee 36s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .integrations-marquee {
+    animation: none;
   }
 }

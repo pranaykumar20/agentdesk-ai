@@ -73,6 +73,17 @@ export default function IndustriesPage() {
             })}
           </div>
 
+          <article
+            id="multi-location"
+            className="scroll-mt-24 mt-8 rounded-2xl border border-border bg-card p-6 shadow-sm"
+          >
+            <h2 className="text-lg font-semibold text-foreground">Multi-location businesses</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Operate every site from one workspace—per-location hours, phone numbers, knowledge,
+              and call distribution with shared reporting.
+            </p>
+          </article>
+
           <div className="mt-14 text-center">
             <p className="text-sm font-medium text-primary">
               Don’t see your industry? We can customize it for you.

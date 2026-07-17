@@ -9,6 +9,8 @@ const publicExact = new Set([
   "/pricing",
   "/features",
   "/industries",
+  "/integrations",
+  "/security",
   "/audit",
   "/login",
   "/signup",

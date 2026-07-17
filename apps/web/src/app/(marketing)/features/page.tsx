@@ -11,10 +11,10 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "Features",
   description:
-    "Everything you need in an AI phone receptionist — answering, routing, booking, summaries, analytics, and more.",
+    "AI Employee Builder, voice and workflow automation, contact center, CRM, SMS, WhatsApp, analytics, and more.",
   openGraph: {
     title: "AgentDesk AI Features",
-    description: "Powerful features for AI call answering, routing, booking, and analytics.",
+    description: "Build and operate an AI workforce across phone, SMS, WhatsApp, chat, and CRM.",
   },
 };
 
@@ -24,16 +24,14 @@ export default function FeaturesPage() {
       <section className="border-b border-border bg-[linear-gradient(180deg,#ffffff_0%,#eef2ff_100%)] py-20">
         <div className="mx-auto max-w-6xl px-6">
           <SectionHeading
-            eyebrow="Powerful features"
+            eyebrow="Platform capabilities"
             title={
               <>
-                Everything you need in an{" "}
-                <span className="bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent">
-                  AI phone receptionist
-                </span>
+                Everything you need to run an{" "}
+                <span className="text-primary">AI workforce</span>
               </>
             }
-            description="Built for every business. Easy to set up. Powerful to scale."
+            description="Create AI employees, automate workflows, run omnichannel conversations, and measure business outcomes."
           />
         </div>
       </section>

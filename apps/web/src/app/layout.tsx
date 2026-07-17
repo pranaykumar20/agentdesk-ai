@@ -10,12 +10,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://agentdesk.ai"),
   title: {
-    default: "AgentDesk AI — AI Receptionist for Every Business",
+    default: "AgentDesk AI | AI Workforce Operating System",
     template: "%s | AgentDesk AI",
   },
   description:
-    "AgentDesk AI answers calls, qualifies leads, books appointments, and routes callers—24/7.",
+    "Create AI receptionists, sales agents, support agents and schedulers that work across phone, SMS, WhatsApp, chat and CRM.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

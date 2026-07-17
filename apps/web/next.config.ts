@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
     "@ai-voice-leads/whatsapp",
     "@ai-voice-leads/integrations",
   ],
+  // Cursor SDK ships source maps / native bits that break webpack bundling.
+  serverExternalPackages: ["@cursor/sdk"],
   outputFileTracingRoot: path.join(__dirname, "../.."),
 };
 
