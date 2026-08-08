@@ -9,14 +9,24 @@ export interface VoiceAgentInput {
   language?: string;
 }
 
+export type VoiceAgentCreateResult = {
+  externalAgentId: string;
+  /** Retell LLM id used for prompt/greeting/analysis updates */
+  externalLlmId?: string;
+};
+
 export interface VoiceProvider {
   readonly name: string;
-  createAgent(input: VoiceAgentInput): Promise<{ externalAgentId: string }>;
-  updateAgent(externalAgentId: string, input: Partial<VoiceAgentInput>): Promise<void>;
+  createAgent(input: VoiceAgentInput): Promise<VoiceAgentCreateResult>;
+  updateAgent(
+    externalAgentId: string,
+    input: Partial<VoiceAgentInput> & { externalLlmId?: string },
+  ): Promise<void>;
   publishAgent(externalAgentId: string): Promise<void>;
   initiateTestCall(input: {
     externalAgentId: string;
     toNumber: string;
+    fromNumber?: string;
   }): Promise<{ externalCallId: string }>;
   getCall(externalCallId: string): Promise<{ status: string; raw: unknown }>;
   transferCall(externalCallId: string, target: string): Promise<void>;
@@ -29,10 +39,13 @@ export interface TelephonyProvider {
   provisionNumber(input: {
     organizationId: string;
     areaCode?: string;
+    /** Retell agent id to bind for inbound (required when provider is retell) */
+    inboundAgentId?: string;
   }): Promise<{ e164: string; providerSid: string }>;
   connectNumber(input: {
     organizationId: string;
     e164: string;
+    inboundAgentId?: string;
   }): Promise<{ providerSid: string }>;
   configureForwarding(input: {
     e164: string;

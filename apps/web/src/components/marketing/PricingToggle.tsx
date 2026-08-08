@@ -56,12 +56,14 @@ export function PricingToggle() {
               ) : null}
               <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
+              <p className="mt-3 text-sm font-medium text-foreground">{plan.corePromise}</p>
               <p className="mt-6 flex items-baseline gap-1">
                 <span className="text-4xl font-bold tracking-tight text-foreground">${price}</span>
                 <span className="text-sm text-muted-foreground">/mo</span>
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {plan.minutesIncluded.toLocaleString()} mins · {plan.trialDays}-day trial
+                {plan.minutesIncluded.toLocaleString()} mins · {plan.trialDays}-day trial · $
+                {plan.overagePerMinuteUsd.toFixed(2)}/min overage
               </p>
               <ul className="mt-6 flex-1 space-y-3">
                 {plan.features.map((feature) => (

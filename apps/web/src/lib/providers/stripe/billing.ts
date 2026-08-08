@@ -123,12 +123,26 @@ export async function handleStripeWebhookEvent(rawBody: string): Promise<{ handl
         ? statusRaw
         : "active";
 
+    const customerId =
+      typeof obj.customer === "string"
+        ? obj.customer
+        : typeof obj.customer === "object" && obj.customer && "id" in obj.customer
+          ? String((obj.customer as { id: string }).id)
+          : undefined;
+    const subscriptionId =
+      typeof obj.subscription === "string"
+        ? obj.subscription
+        : typeof obj.id === "string" && obj.id.startsWith("sub_")
+          ? obj.id
+          : undefined;
+
     await syncSubscriptionFromWebhook({
       organizationId,
       status,
       planKey: priceId ? planKeyFromPriceId(priceId) ?? undefined : undefined,
       priceId,
-      stripeSubscriptionId: typeof obj.id === "string" && obj.id.startsWith("sub_") ? obj.id : undefined,
+      stripeSubscriptionId: subscriptionId,
+      stripeCustomerId: customerId,
     });
     return { handled: true, type: event.type };
   }

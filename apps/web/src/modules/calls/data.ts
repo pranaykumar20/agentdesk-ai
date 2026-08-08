@@ -1,3 +1,4 @@
+import { shouldUseDemoData } from "@/lib/demo-mode";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { buildDemoCallDetail, buildDemoCalls } from "./demo-data";
@@ -109,7 +110,15 @@ export async function listCalls(
   filters: CallListFilters = {},
 ): Promise<PaginatedResult<CallListItem>> {
   const fromDb = await listCallsFromSupabase(organizationId, filters);
-  if (fromDb && fromDb.total > 0) return fromDb;
+  if (fromDb) {
+    if (fromDb.total > 0 || !shouldUseDemoData()) return fromDb;
+  }
+
+  if (!shouldUseDemoData()) {
+    const page = filters.page ?? 1;
+    const pageSize = filters.pageSize ?? 10;
+    return paginate([], page, pageSize);
+  }
 
   const page = filters.page ?? 1;
   const pageSize = filters.pageSize ?? 10;
@@ -121,8 +130,10 @@ export async function getCallDetail(
   organizationId: string,
   callId: string,
 ): Promise<CallDetail | null> {
-  const demo = buildDemoCalls(organizationId).find((c) => c.id === callId);
-  if (demo) return buildDemoCallDetail(demo);
+  if (shouldUseDemoData()) {
+    const demo = buildDemoCalls(organizationId).find((c) => c.id === callId);
+    if (demo) return buildDemoCallDetail(demo);
+  }
 
   if (!getSupabaseEnv().configured) return null;
 

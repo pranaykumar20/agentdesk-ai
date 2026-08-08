@@ -242,6 +242,23 @@ export async function createOrganizationForUser(input: {
     throw new Error(settingsError.message);
   }
 
+  const { error: progressError } = await supabase.from("org_onboarding_progress").upsert({
+    organization_id: organization.id,
+    current_step: 1,
+    completed_steps: [1],
+    data: {},
+  });
+  if (progressError) {
+    console.warn("[org] onboarding progress seed failed", progressError.message);
+  }
+
+  try {
+    const { seedTrialSubscription } = await import("@/modules/billing/data");
+    await seedTrialSubscription(organization.id);
+  } catch (err) {
+    console.warn("[org] trial subscription seed failed", err);
+  }
+
   await setActiveOrgId(organization.id);
   return organization;
 }

@@ -2,6 +2,7 @@ import { mockBillingProvider } from "./mock/billing";
 import { mockCalendarProvider } from "./mock/calendar";
 import { mockTelephonyProvider } from "./mock/telephony";
 import { mockVoiceProvider } from "./mock/voice";
+import { retellTelephonyProvider } from "./retell/telephony";
 import { retellVoiceProvider } from "./retell/voice";
 import { stripeBillingProvider } from "./stripe/billing";
 import { twilioTelephonyProvider } from "./twilio/telephony";
@@ -17,6 +18,7 @@ export function getVoiceProvider(): VoiceProvider {
 
 export function getTelephonyProvider(): TelephonyProvider {
   const mode = process.env.TELEPHONY_PROVIDER?.trim() || "mock";
+  if (mode === "retell") return retellTelephonyProvider;
   if (mode === "twilio") return twilioTelephonyProvider;
   return mockTelephonyProvider;
 }

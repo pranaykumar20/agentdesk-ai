@@ -1,3 +1,4 @@
+import { shouldUseDemoData } from "@/lib/demo-mode";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import type { PaginatedResult } from "@/modules/calls/types";
@@ -70,14 +71,14 @@ export async function listAppointments(
       }
 
       const { data, error, count } = await query.range(from, to);
-      if (!error && data && (count ?? 0) > 0) {
+      if (!error && data) {
         const items: AppointmentListItem[] = data.map((row) => ({
           id: row.id,
           organizationId: row.organization_id,
-          contactName: "Patient",
+          contactName: "Caller",
           contactPhone: null,
-          serviceName: "Service",
-          providerName: "Provider",
+          serviceName: "Appointment",
+          providerName: "—",
           status: row.status as AppointmentStatus,
           startsAt: row.starts_at,
           endsAt: row.ends_at,
@@ -85,19 +86,24 @@ export async function listAppointments(
           createdByAi: row.created_by_ai,
           notes: row.notes,
         }));
-        return {
-          items,
-          total: count ?? items.length,
-          page,
-          pageSize,
-          totalPages: Math.max(1, Math.ceil((count ?? items.length) / pageSize)),
-        };
+        if ((count ?? 0) > 0 || !shouldUseDemoData()) {
+          return {
+            items,
+            total: count ?? items.length,
+            page,
+            pageSize,
+            totalPages: Math.max(1, Math.ceil((count ?? items.length) / pageSize)),
+          };
+        }
       }
     } catch {
       // fall through to demo
     }
   }
 
+  if (!shouldUseDemoData()) {
+    return paginate([], page, pageSize);
+  }
   return paginate(filterAppointments(getDemoAppointments(organizationId), filters), page, pageSize);
 }
 
@@ -150,6 +156,10 @@ export async function createAppointment(
     } catch {
       // demo fallback
     }
+  }
+
+  if (!shouldUseDemoData()) {
+    throw new Error("Failed to create appointment");
   }
 
   const item: AppointmentListItem = {

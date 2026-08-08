@@ -41,6 +41,11 @@ export type AiAgent = {
   capabilities: AgentCapability[];
   draft: AgentVersion;
   published: AgentVersion | null;
+  /** Retell (or mock) external agent id */
+  externalAgentId: string | null;
+  externalProvider: string | null;
+  /** Retell LLM id stored in draft behavior */
+  externalLlmId: string | null;
   updatedAt: string;
 };
 

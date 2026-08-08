@@ -1,44 +1,45 @@
-import type { VoiceProvider, VoiceAgentInput } from "../types";
+import type { VoiceProvider } from "../types";
 
-const agents = new Map<string, VoiceAgentInput>();
-const calls = new Map<string, { status: string; agentId: string }>();
+const agents = new Map<string, { name: string; llmId: string }>();
+const calls = new Map<string, { status: string }>();
 
 export const mockVoiceProvider: VoiceProvider = {
   name: "mock",
 
   async createAgent(input) {
-    const externalAgentId = `mock_agent_${crypto.randomUUID()}`;
-    agents.set(externalAgentId, input);
-    return { externalAgentId };
+    const externalAgentId = `agent_mock_${crypto.randomUUID().slice(0, 8)}`;
+    const externalLlmId = `llm_mock_${crypto.randomUUID().slice(0, 8)}`;
+    agents.set(externalAgentId, { name: input.name, llmId: externalLlmId });
+    return { externalAgentId, externalLlmId };
   },
 
   async updateAgent(externalAgentId, input) {
     const existing = agents.get(externalAgentId);
-    if (!existing) throw new Error("Mock agent not found");
-    agents.set(externalAgentId, { ...existing, ...input });
+    if (!existing) return;
+    if (input.name) existing.name = input.name;
+    agents.set(externalAgentId, existing);
   },
 
   async publishAgent(externalAgentId) {
-    if (!agents.has(externalAgentId)) throw new Error("Mock agent not found");
+    if (!externalAgentId) throw new Error("Missing mock agent id");
   },
 
   async initiateTestCall(input) {
-    const externalCallId = `mock_call_${crypto.randomUUID()}`;
-    calls.set(externalCallId, { status: "completed", agentId: input.externalAgentId });
+    const externalCallId = `call_mock_${crypto.randomUUID().slice(0, 8)}`;
+    calls.set(externalCallId, { status: "ended" });
+    void input;
     return { externalCallId };
   },
 
   async getCall(externalCallId) {
-    const call = calls.get(externalCallId);
-    return { status: call?.status ?? "unknown", raw: call ?? null };
+    return { status: calls.get(externalCallId)?.status ?? "unknown", raw: {} };
   },
 
   async transferCall() {
-    // no-op in mock
+    // no-op
   },
 
   async verifyWebhook() {
-    // Never accept forged webhooks if mock is accidentally selected in production.
     return process.env.NODE_ENV !== "production";
   },
 };

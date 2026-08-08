@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AUTH_ROUTES } from "@/lib/auth/constants";
-
 export function CreateOrgForm() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -29,7 +27,7 @@ export function CreateOrgForm() {
         setError(data.error ?? "Failed to create organization");
         return;
       }
-      router.push(AUTH_ROUTES.dashboard);
+      router.push("/onboarding");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create organization");

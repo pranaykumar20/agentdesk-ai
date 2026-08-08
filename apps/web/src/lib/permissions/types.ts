@@ -9,6 +9,7 @@ export const RESOURCES = [
   "phone_numbers",
   "routing",
   "calls",
+  "leads",
   "appointments",
   "knowledge",
   "integrations",

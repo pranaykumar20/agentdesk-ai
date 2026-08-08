@@ -33,6 +33,7 @@ export function PricingPreviewSection() {
               ) : null}
               <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
+              <p className="mt-2 text-sm font-medium text-foreground">{plan.corePromise}</p>
               <p className="mt-5">
                 <span className="text-4xl font-bold tracking-tight text-foreground">
                   ${plan.monthlyPriceUsd}
@@ -46,13 +47,24 @@ export function PricingPreviewSection() {
                 <li className="text-sm text-muted-foreground">
                   {plan.phoneNumbers} phone numbers · {plan.locations} locations
                 </li>
+                <li className="text-sm text-muted-foreground">
+                  {plan.trialDays}-day trial · ${plan.overagePerMinuteUsd.toFixed(2)}/min overage
+                </li>
                 <li className="text-sm text-muted-foreground">{plan.supportLevel} support</li>
-                {plan.features.slice(0, 4).map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-                    {feature}
-                  </li>
-                ))}
+                {plan.features
+                  .filter(
+                    (feature) =>
+                      !/^(Everything in |\d[\d,]*\s+(AI minutes|phone number|AI employee|team member|location|knowledge))/i.test(
+                        feature,
+                      ),
+                  )
+                  .slice(0, 4)
+                  .map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                      {feature}
+                    </li>
+                  ))}
               </ul>
               <Link
                 href="/signup"

@@ -22,15 +22,19 @@ AgentDesk AI is a modular monolith (Phase 1) on Next.js App Router with Supabase
 - Isolation: Supabase RLS + server-side `requireOrg` / `can()`
 - Active organization is resolved from session membership — never trust client-supplied org IDs without validation
 
-## Call flow (Phase 1 target)
+## Call flow (Thin MVP)
 
 ```
-PSTN → Twilio (optional) / Retell phone
+PSTN → Retell-native phone number (bound to inbound agent)
     → Retell AI agent
     → POST /api/webhooks/retell (verified)
     → calls + transcripts + summaries (org-scoped)
+    → contacts / leads / appointments from call_analyzed
     → background jobs for heavy processing
 ```
+
+Twilio voice webhooks remain for optional forwarding/SMS later; they are **not** the MVP inbound AI bridge.
+Set `VOICE_PROVIDER=retell` and `TELEPHONY_PROVIDER=retell` for production go-live.
 
 ## Auth flow
 

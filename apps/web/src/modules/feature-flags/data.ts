@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import {
   DEFAULT_FEATURE_FLAGS,
+  getBaselineFeatureFlags,
   resolveFeatureFlags,
   type FeatureFlagKey,
 } from "@/lib/feature-flags";
@@ -13,7 +14,7 @@ export async function getOrgFeatureFlags(
   organizationId: string,
 ): Promise<Record<FeatureFlagKey, boolean>> {
   if (!getSupabaseEnv().configured) {
-    return resolveFeatureFlags();
+    return getBaselineFeatureFlags();
   }
 
   try {

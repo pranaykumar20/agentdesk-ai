@@ -22,8 +22,8 @@ export default function PricingPage() {
         <div className="mx-auto max-w-6xl px-6">
           <SectionHeading
             eyebrow="Pricing"
-            title="Simple plans. Measurable ROI."
-            description="Display prices are for planning only. Stripe is the billing authority when you subscribe."
+            title="AI receptionist to AI workforce."
+            description="Starter for answering calls, Professional for growth automation, Business for multi-location AI operations. Stripe is the billing authority when you subscribe."
           />
         </div>
       </section>
@@ -59,9 +59,13 @@ export default function PricingPage() {
                 [
                   ["AI minutes / mo", ...PRICING_PLANS.map((p) => p.minutesIncluded.toLocaleString())],
                   ["Phone numbers", ...PRICING_PLANS.map((p) => String(p.phoneNumbers))],
-                  ["AI agents", ...PRICING_PLANS.map((p) => String(p.aiAgents))],
+                  ["AI employees", ...PRICING_PLANS.map((p) => String(p.aiAgents))],
                   ["Team members", ...PRICING_PLANS.map((p) => String(p.teamMembers))],
                   ["Locations", ...PRICING_PLANS.map((p) => String(p.locations))],
+                  [
+                    "Knowledge docs / FAQs",
+                    ...PRICING_PLANS.map((p) => p.knowledgeDocuments.toLocaleString()),
+                  ],
                   ["Overage / min", ...PRICING_PLANS.map((p) => `$${p.overagePerMinuteUsd.toFixed(2)}`)],
                   ["Support", ...PRICING_PLANS.map((p) => p.supportLevel)],
                   ["Trial", ...PRICING_PLANS.map((p) => `${p.trialDays} days`)],

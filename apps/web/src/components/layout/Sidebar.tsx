@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { AudioLines, X } from "lucide-react";
 import { filterNavForRole, groupNavItems, isNavActive } from "@/lib/navigation/dashboard";
 import type { FeatureFlagKey } from "@/lib/feature-flags";
+import type { PlanKey } from "@/modules/billing/types";
 import { PlanUsageCard } from "./PlanUsageCard";
 import { OrganizationSwitcher, type OrgOption } from "./OrganizationSwitcher";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ export function Sidebar({
   activeOrgId,
   activeRole,
   planName,
+  planKey,
   minutesUsed,
   minutesIncluded,
   featureFlags,
@@ -24,6 +26,7 @@ export function Sidebar({
   activeOrgId: string;
   activeRole: string;
   planName: string;
+  planKey: PlanKey;
   minutesUsed: number;
   minutesIncluded: number;
   featureFlags: Record<FeatureFlagKey, boolean>;
@@ -31,7 +34,7 @@ export function Sidebar({
   onMobileClose: () => void;
 }) {
   const pathname = usePathname();
-  const sections = groupNavItems(filterNavForRole(activeRole, featureFlags));
+  const sections = groupNavItems(filterNavForRole(activeRole, featureFlags, planKey));
 
   return (
     <>
@@ -100,7 +103,10 @@ export function Sidebar({
                       )}
                       aria-current={active ? "page" : undefined}
                     >
-                      <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                      <Icon
+                        className={cn("h-4 w-4 shrink-0", item.iconClass)}
+                        aria-hidden
+                      />
                       <span className="truncate">{item.label}</span>
                       {item.badge ? (
                         <span className="ml-auto rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">

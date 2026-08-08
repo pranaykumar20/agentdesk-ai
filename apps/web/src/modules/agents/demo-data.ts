@@ -66,6 +66,9 @@ function buildAgent(
     id: partial.id,
     name: partial.name,
     roleTitle: partial.roleTitle,
+    externalAgentId: partial.externalAgentId ?? `mock_${partial.id}`,
+    externalProvider: partial.externalProvider ?? "mock",
+    externalLlmId: partial.externalLlmId ?? `llm_${partial.id}`,
   };
 }
 

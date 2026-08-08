@@ -4,26 +4,26 @@ import { getPlan } from "./plans";
 const store = new Map<string, OrgSubscription>();
 
 function defaultSubscription(organizationId: string): OrgSubscription {
-  const plan = getPlan("professional");
+  const plan = getPlan("starter");
   const now = new Date();
   const periodEnd = new Date(now);
-  periodEnd.setMonth(periodEnd.getMonth() + 1);
+  periodEnd.setDate(periodEnd.getDate() + 14);
 
   return {
     organizationId,
-    planKey: "professional",
-    status: "active",
+    planKey: "starter",
+    status: "trialing",
     interval: "month",
     minutesIncluded: plan.minutesIncluded,
-    minutesUsed: 2500,
+    minutesUsed: 0,
     overageMinutes: 0,
     overagePerMinuteUsd: plan.overagePerMinuteUsd,
     estimatedOverageUsd: 0,
-    stripeCustomerId: `cus_mock_${organizationId.slice(0, 8)}`,
-    stripeSubscriptionId: `sub_mock_${organizationId.slice(0, 8)}`,
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
     currentPeriodStart: now.toISOString(),
     currentPeriodEnd: periodEnd.toISOString(),
-    trialEndsAt: null,
+    trialEndsAt: periodEnd.toISOString(),
   };
 }
 

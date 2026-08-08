@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus, Workflow } from "lucide-react";
 import { requireOrg } from "@/lib/auth";
+import { requirePlanFeature } from "@/lib/billing/require-plan-feature";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { Badge } from "@/components/ui/badge";
@@ -20,10 +21,11 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Workflows" };
 
 export default async function WorkflowsPage() {
-  const { organization } = await requireOrg();
+  const ctx = await requireOrg();
+  await requirePlanFeature(ctx, "workflows_basic");
   const [workflows, metrics] = await Promise.all([
-    listWorkflows(organization.id),
-    getWorkflowMetrics(organization.id),
+    listWorkflows(ctx.organization.id),
+    getWorkflowMetrics(ctx.organization.id),
   ]);
 
   return (

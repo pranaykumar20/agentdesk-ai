@@ -338,6 +338,235 @@ export type Database = {
         Update: Record<string, unknown>;
         Relationships: [];
       };
+      ai_agents: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          role_title: string | null;
+          description: string | null;
+          status: string;
+          primary_language: string;
+          voice: string | null;
+          timezone: string | null;
+          published_version_id: string | null;
+          external_provider: string | null;
+          external_agent_id: string | null;
+          lifecycle_status: string;
+          department: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          role_title?: string | null;
+          description?: string | null;
+          status?: string;
+          primary_language?: string;
+          voice?: string | null;
+          timezone?: string | null;
+          published_version_id?: string | null;
+          external_provider?: string | null;
+          external_agent_id?: string | null;
+          lifecycle_status?: string;
+          department?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_agents"]["Insert"]>;
+        Relationships: [];
+      };
+      ai_agent_versions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          agent_id: string;
+          version_number: number;
+          status: string;
+          greeting: string | null;
+          system_prompt: string | null;
+          behavior: Json;
+          created_by: string | null;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          agent_id: string;
+          version_number: number;
+          status?: string;
+          greeting?: string | null;
+          system_prompt?: string | null;
+          behavior?: Json;
+          created_by?: string | null;
+          published_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_agent_versions"]["Insert"]>;
+        Relationships: [];
+      };
+      phone_numbers: {
+        Row: {
+          id: string;
+          organization_id: string;
+          e164: string;
+          friendly_name: string | null;
+          number_type: string;
+          provider: string;
+          provider_sid: string | null;
+          status: string;
+          location_id: string | null;
+          recording_enabled: boolean;
+          voicemail_enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          e164: string;
+          friendly_name?: string | null;
+          number_type?: string;
+          provider?: string;
+          provider_sid?: string | null;
+          status?: string;
+          location_id?: string | null;
+          recording_enabled?: boolean;
+          voicemail_enabled?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["phone_numbers"]["Insert"]>;
+        Relationships: [];
+      };
+      phone_number_assignments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          phone_number_id: string;
+          agent_id: string | null;
+          department_id: string | null;
+          team_member_id: string | null;
+          assignment_type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          phone_number_id: string;
+          agent_id?: string | null;
+          department_id?: string | null;
+          team_member_id?: string | null;
+          assignment_type?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["phone_number_assignments"]["Insert"]>;
+        Relationships: [];
+      };
+      contacts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          full_name: string | null;
+          email: string | null;
+          phone: string | null;
+          tags: string[];
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          full_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          tags?: string[];
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["contacts"]["Insert"]>;
+        Relationships: [];
+      };
+      leads: {
+        Row: {
+          id: string;
+          organization_id: string;
+          contact_id: string | null;
+          source: string | null;
+          status: string;
+          score: number | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          contact_id?: string | null;
+          source?: string | null;
+          status?: string;
+          score?: number | null;
+          notes?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["leads"]["Insert"]>;
+        Relationships: [];
+      };
+      lead_activities: {
+        Row: {
+          id: string;
+          organization_id: string;
+          lead_id: string;
+          activity_type: string;
+          payload: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          lead_id: string;
+          activity_type: string;
+          payload?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["lead_activities"]["Insert"]>;
+        Relationships: [];
+      };
+      business_policies: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          body: string;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          body: string;
+          status?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["business_policies"]["Insert"]>;
+        Relationships: [];
+      };
+      org_onboarding_progress: {
+        Row: {
+          organization_id: string;
+          current_step: number;
+          completed_steps: number[];
+          data: Json;
+          completed_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          current_step?: number;
+          completed_steps?: number[];
+          data?: Json;
+          completed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["org_onboarding_progress"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

@@ -3,6 +3,35 @@ import type { VoiceAgentInput, VoiceProvider } from "../types";
 
 const RETELL_API = "https://api.retellai.com";
 
+const POST_CALL_ANALYSIS = [
+  {
+    name: "caller_name",
+    description: "Full name of the caller if provided",
+    type: "string",
+  },
+  {
+    name: "intent",
+    description:
+      "Primary caller intent such as appointment, reservation, order, callback, faq, or other",
+    type: "string",
+  },
+  {
+    name: "callback_requested",
+    description: "Whether the caller asked for a human callback",
+    type: "boolean",
+  },
+  {
+    name: "appointment_start",
+    description: "ISO-8601 datetime if an appointment or reservation time was agreed",
+    type: "string",
+  },
+  {
+    name: "notes",
+    description: "Short notes useful for staff follow-up",
+    type: "string",
+  },
+] as const;
+
 function getApiKey(): string {
   const key = process.env.RETELL_API_KEY?.trim();
   if (!key) throw new Error("RETELL_API_KEY is not configured");
@@ -10,7 +39,6 @@ function getApiKey(): string {
 }
 
 function webhookSigningKey(): string {
-  // Prefer dedicated webhook secret; Retell docs also allow the webhook-badged API key.
   return process.env.RETELL_WEBHOOK_SECRET?.trim() || process.env.RETELL_API_KEY?.trim() || "";
 }
 
@@ -61,8 +89,10 @@ export const retellVoiceProvider: VoiceProvider = {
     const llm = await retellFetch<{ llm_id: string }>("/create-retell-llm", {
       method: "POST",
       body: JSON.stringify({
-        general_prompt: input.systemPrompt ?? `You are ${input.name}, a helpful AI phone receptionist.`,
+        general_prompt:
+          input.systemPrompt ?? `You are ${input.name}, a helpful AI phone receptionist.`,
         begin_message: input.greeting ?? `Hi, thanks for calling. How can I help you today?`,
+        post_call_analysis_data: POST_CALL_ANALYSIS,
       }),
     });
 
@@ -79,7 +109,7 @@ export const retellVoiceProvider: VoiceProvider = {
       }),
     });
 
-    return { externalAgentId: agent.agent_id };
+    return { externalAgentId: agent.agent_id, externalLlmId: llm.llm_id };
   },
 
   async updateAgent(externalAgentId, input) {
@@ -87,22 +117,38 @@ export const retellVoiceProvider: VoiceProvider = {
     if (input.name) patch.agent_name = input.name;
     if (input.voice) patch.voice_id = input.voice;
     if (input.language) patch.language = input.language;
-    if (Object.keys(patch).length === 0) return;
+    if (Object.keys(patch).length > 0) {
+      await retellFetch(`/update-agent/${externalAgentId}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      });
+    }
 
-    await retellFetch(`/update-agent/${externalAgentId}`, {
-      method: "PATCH",
-      body: JSON.stringify(patch),
-    });
+    if (input.externalLlmId && (input.systemPrompt || input.greeting)) {
+      const llmPatch: Record<string, unknown> = {
+        post_call_analysis_data: POST_CALL_ANALYSIS,
+      };
+      if (input.systemPrompt) llmPatch.general_prompt = input.systemPrompt;
+      if (input.greeting) llmPatch.begin_message = input.greeting;
+      await retellFetch(`/update-retell-llm/${input.externalLlmId}`, {
+        method: "PATCH",
+        body: JSON.stringify(llmPatch),
+      });
+    }
   },
 
   async publishAgent(externalAgentId) {
-    // Retell agents are live after create/update; publish is a no-op acknowledgment.
     if (!externalAgentId) throw new Error("Missing Retell agent id");
   },
 
   async initiateTestCall(input) {
-    const from = process.env.RETELL_FROM_NUMBER?.trim() || process.env.TWILIO_PHONE_NUMBER?.trim();
-    if (!from) throw new Error("RETELL_FROM_NUMBER (or TWILIO_PHONE_NUMBER) required for test calls");
+    const from =
+      input.fromNumber?.trim() ||
+      process.env.RETELL_FROM_NUMBER?.trim() ||
+      process.env.TWILIO_PHONE_NUMBER?.trim();
+    if (!from) {
+      throw new Error("RETELL_FROM_NUMBER (or a provisioned Retell from number) required for test calls");
+    }
 
     const call = await retellFetch<{ call_id: string }>("/v2/create-phone-call", {
       method: "POST",
@@ -132,7 +178,6 @@ export const retellVoiceProvider: VoiceProvider = {
   async verifyWebhook(headers, rawBody) {
     const key = webhookSigningKey();
     if (!key) {
-      // Allow in non-production when secret missing (local mock of retell mode)
       return process.env.NODE_ENV !== "production";
     }
     const signature =

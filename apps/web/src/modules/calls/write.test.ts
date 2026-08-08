@@ -8,32 +8,34 @@ describe("resolveOrganizationId", () => {
     process.env.DEFAULT_WEBHOOK_ORG_ID = prev;
   });
 
-  it("prefers metadata.organization_id", () => {
+  it("prefers metadata.organization_id", async () => {
     process.env.DEFAULT_WEBHOOK_ORG_ID = "fallback-org";
-    expect(
+    await expect(
       resolveOrganizationId({
         call_id: "c1",
         metadata: { organization_id: "org-meta" },
       }),
-    ).toBe("org-meta");
+    ).resolves.toBe("org-meta");
   });
 
-  it("accepts organizationId camelCase", () => {
-    expect(
+  it("accepts organizationId camelCase", async () => {
+    await expect(
       resolveOrganizationId({
         call_id: "c1",
         metadata: { organizationId: "org-camel" },
       }),
-    ).toBe("org-camel");
+    ).resolves.toBe("org-camel");
   });
 
-  it("falls back to DEFAULT_WEBHOOK_ORG_ID", () => {
+  it("falls back to DEFAULT_WEBHOOK_ORG_ID", async () => {
     process.env.DEFAULT_WEBHOOK_ORG_ID = "fallback-org";
-    expect(resolveOrganizationId({ call_id: "c1", metadata: {} })).toBe("fallback-org");
+    await expect(resolveOrganizationId({ call_id: "c1", metadata: {} })).resolves.toBe(
+      "fallback-org",
+    );
   });
 
-  it("returns null when metadata and fallback are missing", () => {
+  it("returns null when metadata and fallback are missing", async () => {
     delete process.env.DEFAULT_WEBHOOK_ORG_ID;
-    expect(resolveOrganizationId({ call_id: "c1" })).toBeNull();
+    await expect(resolveOrganizationId({ call_id: "c1" })).resolves.toBeNull();
   });
 });

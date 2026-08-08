@@ -1,5 +1,6 @@
 import { Contact } from "lucide-react";
 import { requireOrg } from "@/lib/auth";
+import { requirePlanFeature } from "@/lib/billing/require-plan-feature";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +17,9 @@ function formatMoney(cents: number) {
 }
 
 export default async function CrmPage() {
-  const { organization } = await requireOrg();
-  const summary = await getCrmPipelineSummary(organization.id);
+  const ctx = await requireOrg();
+  await requirePlanFeature(ctx, "crm");
+  const summary = await getCrmPipelineSummary(ctx.organization.id);
 
   return (
     <div>

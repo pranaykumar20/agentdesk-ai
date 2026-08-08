@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { filterNavForRole, isNavActive } from "./dashboard";
-import { DEFAULT_FEATURE_FLAGS } from "@/lib/feature-flags";
+import { DEMO_FEATURE_FLAGS, MVP_FEATURE_FLAGS } from "@/lib/feature-flags";
 
 describe("isNavActive", () => {
   it("matches dashboard root exactly", () => {
@@ -17,9 +17,10 @@ describe("isNavActive", () => {
 
 describe("filterNavForRole", () => {
   it("hides billing/settings for VIEWER but keeps read-capable sections", () => {
-    const hrefs = filterNavForRole("VIEWER").map((i) => i.href);
+    const hrefs = filterNavForRole("VIEWER", MVP_FEATURE_FLAGS, "starter").map((i) => i.href);
     expect(hrefs).toContain("/dashboard");
     expect(hrefs).toContain("/dashboard/calls");
+    expect(hrefs).toContain("/dashboard/leads");
     expect(hrefs).toContain("/dashboard/team");
     expect(hrefs).toContain("/dashboard/ai-employees");
     expect(hrefs).not.toContain("/dashboard/billing");
@@ -27,21 +28,31 @@ describe("filterNavForRole", () => {
     expect(hrefs).not.toContain("/dashboard/routing-rules");
   });
 
-  it("includes billing for OWNER", () => {
-    const hrefs = filterNavForRole("OWNER").map((i) => i.href);
+  it("includes billing for OWNER on Starter and hides Phase 2 modules", () => {
+    const hrefs = filterNavForRole("OWNER", MVP_FEATURE_FLAGS, "starter").map((i) => i.href);
     expect(hrefs).toContain("/dashboard/billing");
     expect(hrefs).toContain("/dashboard/team");
     expect(hrefs).toContain("/dashboard/ai-employees");
+    expect(hrefs).toContain("/dashboard/phone-numbers");
+    expect(hrefs).toContain("/dashboard/leads");
+    expect(hrefs).not.toContain("/dashboard/crm");
+    expect(hrefs).not.toContain("/dashboard/workflows");
+    expect(hrefs).not.toContain("/dashboard/integrations");
   });
 
-  it("hides flagged-off modules", () => {
-    const hrefs = filterNavForRole("OWNER", {
-      ...DEFAULT_FEATURE_FLAGS,
-      workflows: false,
-      contact_center: false,
-    }).map((i) => i.href);
+  it("hides flagged-off modules even on Professional", () => {
+    const hrefs = filterNavForRole(
+      "OWNER",
+      {
+        ...DEMO_FEATURE_FLAGS,
+        workflows: false,
+        contact_center: false,
+      },
+      "professional",
+    ).map((i) => i.href);
     expect(hrefs).not.toContain("/dashboard/workflows");
     expect(hrefs).not.toContain("/dashboard/contact-center");
     expect(hrefs).toContain("/dashboard/ai-employees");
+    expect(hrefs).toContain("/dashboard/crm");
   });
 });

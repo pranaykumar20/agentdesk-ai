@@ -126,6 +126,7 @@ export default async function BillingPage({
                   <span className="text-sm font-normal text-muted-foreground">/mo</span>
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
+                <p className="mt-2 text-sm font-medium text-foreground">{plan.corePromise}</p>
                 <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
                   {plan.features.slice(0, 5).map((f) => (
                     <li key={f}>· {f}</li>

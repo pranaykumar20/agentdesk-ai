@@ -6,6 +6,8 @@ export type PricingPlan = {
   id: "starter" | "professional" | "business";
   name: string;
   description: string;
+  /** One-line product promise shown on pricing cards. */
+  corePromise: string;
   monthlyPriceUsd: number;
   annualPriceUsd: number;
   minutesIncluded: number;
@@ -13,6 +15,7 @@ export type PricingPlan = {
   aiAgents: number;
   teamMembers: number;
   locations: number;
+  knowledgeDocuments: number;
   overagePerMinuteUsd: number;
   supportLevel: string;
   trialDays: number;
@@ -26,7 +29,9 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: "starter",
     name: "Starter",
-    description: "For solo operators getting started with AI answering.",
+    description:
+      "For solo operators and single-location businesses that need AI call answering.",
+    corePromise: "Stop missing calls with a 24/7 AI receptionist.",
     monthlyPriceUsd: 79,
     annualPriceUsd: 63,
     minutesIncluded: 500,
@@ -34,15 +39,26 @@ export const PRICING_PLANS: PricingPlan[] = [
     aiAgents: 1,
     teamMembers: 3,
     locations: 1,
+    knowledgeDocuments: 25,
     overagePerMinuteUsd: 0.12,
     supportLevel: "Email",
     trialDays: 14,
     features: [
       "500 AI minutes / month",
       "1 phone number",
-      "1 AI agent",
-      "Basic routing",
+      "1 AI employee",
+      "3 team members",
+      "1 location",
+      "25 knowledge documents / FAQs",
+      "24/7 AI Receptionist",
+      "Basic call handling",
       "Call transcripts & summaries",
+      "Basic appointments",
+      "Basic lead capture",
+      "Basic knowledge base",
+      "Basic routing rules",
+      "Basic analytics dashboard",
+      "Human handoff",
       "Email support",
     ],
     stripePriceEnvMonthly: "STRIPE_PRICE_STARTER",
@@ -51,7 +67,9 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: "professional",
     name: "Professional",
-    description: "For growing teams that need routing, booking, and analytics.",
+    description:
+      "For growing teams that need appointments, lead capture, routing, CRM, and follow-up automation.",
+    corePromise: "Turn calls into booked appointments and qualified leads.",
     monthlyPriceUsd: 199,
     annualPriceUsd: 159,
     minutesIncluded: 2500,
@@ -59,19 +77,34 @@ export const PRICING_PLANS: PricingPlan[] = [
     aiAgents: 3,
     teamMembers: 15,
     locations: 3,
+    knowledgeDocuments: 250,
     overagePerMinuteUsd: 0.1,
     supportLevel: "Priority email + chat",
     trialDays: 14,
     popular: true,
     features: [
+      "Everything in Starter",
       "2,500 AI minutes / month",
       "5 phone numbers",
-      "3 AI agents",
+      "3 AI employees",
+      "15 team members",
+      "3 locations",
+      "250 knowledge documents / FAQs",
+      "Multiple AI employees",
+      "AI Appointment Setter",
+      "AI Sales/Lead Agent",
       "Advanced routing rules",
       "Appointments & lead capture",
+      "CRM & Pipeline",
+      "Contact Center",
+      "Call Queues",
+      "SMS follow-ups",
       "Integrations",
-      "Analytics dashboard",
-      "Priority support",
+      "Marketplace templates",
+      "Training Center basic",
+      "Advanced analytics",
+      "CSV analytics export",
+      "Priority email + chat support",
     ],
     stripePriceEnvMonthly: "STRIPE_PRICE_PROFESSIONAL",
     stripePriceEnvAnnual: "STRIPE_PRICE_PROFESSIONAL_ANNUAL",
@@ -79,7 +112,9 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: "business",
     name: "Business",
-    description: "For multi-location operators with advanced workflows.",
+    description:
+      "For multi-location and high-volume operators running an AI workforce across teams, channels, and workflows.",
+    corePromise: "Operate a complete AI workforce across locations and customer channels.",
     monthlyPriceUsd: 449,
     annualPriceUsd: 359,
     minutesIncluded: 8000,
@@ -87,18 +122,35 @@ export const PRICING_PLANS: PricingPlan[] = [
     aiAgents: 10,
     teamMembers: 50,
     locations: 15,
+    knowledgeDocuments: 1000,
     overagePerMinuteUsd: 0.08,
     supportLevel: "Dedicated success",
     trialDays: 14,
     features: [
+      "Everything in Professional",
       "8,000 AI minutes / month",
       "20 phone numbers",
-      "10 AI agents",
+      "10 AI employees",
+      "50 team members",
+      "15 locations",
+      "1,000 knowledge documents / FAQs",
       "Multi-location management",
+      "Advanced AI Employee Builder",
+      "Advanced Workflow Builder",
+      "Advanced Voice Flow Designer",
+      "Live Call Monitor",
+      "Listen / whisper / barge controls",
+      "Advanced Contact Center",
+      "Advanced Call Queues",
+      "WhatsApp automation",
+      "SMS campaigns",
+      "Revenue & ROI dashboard",
+      "Advanced Training Center",
       "Custom routing & escalations",
+      "Advanced analytics exports",
+      "Custom integrations/webhooks",
       "SSO-ready security controls",
-      "Advanced analytics & exports",
-      "Dedicated support",
+      "Dedicated success support",
     ],
     stripePriceEnvMonthly: "STRIPE_PRICE_BUSINESS",
     stripePriceEnvAnnual: "STRIPE_PRICE_BUSINESS_ANNUAL",

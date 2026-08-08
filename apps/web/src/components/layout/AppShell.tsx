@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { DASHBOARD_NAV, isNavActive } from "@/lib/navigation/dashboard";
 import type { FeatureFlagKey } from "@/lib/feature-flags";
+import type { PlanKey } from "@/modules/billing/types";
 import { AvaChatWidget } from "@/components/chat/AvaChatWidget";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -16,6 +17,7 @@ export function AppShell({
   activeRole,
   orgName,
   planName,
+  planKey,
   minutesUsed,
   minutesIncluded,
   featureFlags,
@@ -26,6 +28,7 @@ export function AppShell({
   activeRole: string;
   orgName: string;
   planName: string;
+  planKey: PlanKey;
   minutesUsed: number;
   minutesIncluded: number;
   featureFlags: Record<FeatureFlagKey, boolean>;
@@ -64,6 +67,7 @@ export function AppShell({
         activeOrgId={activeOrgId}
         activeRole={activeRole}
         planName={planName}
+        planKey={planKey}
         minutesUsed={minutesUsed}
         minutesIncluded={minutesIncluded}
         featureFlags={featureFlags}

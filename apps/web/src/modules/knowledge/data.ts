@@ -1,3 +1,4 @@
+import { shouldUseDemoData } from "@/lib/demo-mode";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -17,24 +18,27 @@ export async function listKnowledgeDocuments(organizationId: string): Promise<Kn
         .eq("organization_id", organizationId)
         .order("updated_at", { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        return data.map((row) => ({
-          id: row.id,
-          organizationId: row.organization_id,
-          title: row.title,
-          status: row.status as KnowledgeStatus,
-          category: row.category,
-          mimeType: row.mime_type,
-          byteSize: row.byte_size,
-          viewCount: row.view_count,
-          helpfulRate: row.helpful_rate,
-          updatedAt: row.updated_at,
-        }));
+      if (!error && data) {
+        if (data.length > 0 || !shouldUseDemoData()) {
+          return data.map((row) => ({
+            id: row.id,
+            organizationId: row.organization_id,
+            title: row.title,
+            status: row.status as KnowledgeStatus,
+            category: row.category,
+            mimeType: row.mime_type,
+            byteSize: row.byte_size,
+            viewCount: row.view_count,
+            helpfulRate: row.helpful_rate,
+            updatedAt: row.updated_at,
+          }));
+        }
       }
     } catch {
       // demo
     }
   }
+  if (!shouldUseDemoData()) return [];
   return getDemoDocuments(organizationId);
 }
 
@@ -48,20 +52,23 @@ export async function listFaqs(organizationId: string): Promise<FaqItem[]> {
         .eq("organization_id", organizationId)
         .order("created_at", { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        return data.map((row) => ({
-          id: row.id,
-          organizationId: row.organization_id,
-          question: row.question,
-          answer: row.answer,
-          category: row.category,
-          status: row.status as KnowledgeStatus,
-        }));
+      if (!error && data) {
+        if (data.length > 0 || !shouldUseDemoData()) {
+          return data.map((row) => ({
+            id: row.id,
+            organizationId: row.organization_id,
+            question: row.question,
+            answer: row.answer,
+            category: row.category,
+            status: row.status as KnowledgeStatus,
+          }));
+        }
       }
     } catch {
       // demo
     }
   }
+  if (!shouldUseDemoData()) return [];
   return buildDemoFaqs(organizationId);
 }
 

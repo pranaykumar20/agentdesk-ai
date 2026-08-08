@@ -7,6 +7,8 @@ export type PhoneNumberItem = {
   friendlyName: string;
   numberType: "local" | "toll_free";
   provider: string;
+  providerSid: string | null;
+  agentId: string | null;
   assignedTo: string;
   location: string;
   status: PhoneNumberStatus;

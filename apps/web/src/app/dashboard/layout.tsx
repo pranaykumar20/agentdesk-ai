@@ -1,7 +1,9 @@
+import { redirect } from "next/navigation";
 import { requireOrg, listUserOrganizations, getSessionUser } from "@/lib/auth";
 import { AppShell } from "@/components/layout/AppShell";
-import { getUsageSnapshot } from "@/modules/billing/data";
+import { getOrgSubscription, getUsageSnapshot } from "@/modules/billing/data";
 import { getOrgFeatureFlags } from "@/modules/feature-flags/data";
+import { isOnboardingComplete } from "@/modules/onboarding/data";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +11,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const ctx = await requireOrg();
   const user = await getSessionUser();
   const organizations = user ? await listUserOrganizations(user.id) : [];
-  const [usage, featureFlags] = await Promise.all([
+  const [usage, featureFlags, subscription, onboardingDone] = await Promise.all([
     getUsageSnapshot(ctx.organization.id),
     getOrgFeatureFlags(ctx.organization.id),
+    getOrgSubscription(ctx.organization.id),
+    isOnboardingComplete(ctx.organization.id),
   ]);
+
+  if (!onboardingDone && (ctx.role === "OWNER" || ctx.role === "ADMIN")) {
+    redirect("/onboarding");
+  }
 
   return (
     <AppShell
@@ -21,6 +29,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       activeRole={ctx.role}
       orgName={ctx.organization.name}
       planName={usage.planName}
+      planKey={subscription.planKey}
       minutesUsed={usage.minutesUsed}
       minutesIncluded={usage.minutesIncluded}
       featureFlags={featureFlags}
