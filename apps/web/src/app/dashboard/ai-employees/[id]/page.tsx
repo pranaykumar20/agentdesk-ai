@@ -39,7 +39,7 @@ export default async function AiEmployeeDetailPage({
         />
       </div>
 
-      <AgentEditor agent={agent} />
+      <AgentEditor agent={agent} businessName={organization.name} />
     </div>
   );
 }

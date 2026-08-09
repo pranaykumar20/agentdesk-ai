@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentOrgContext, getSessionUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
+import { syncKnowledgeToAgents } from "@/modules/agents/data";
 import { createKnowledgeDocument } from "@/modules/knowledge/data";
 
 const bodySchema = z.object({
@@ -9,6 +10,9 @@ const bodySchema = z.object({
   category: z.string().trim().max(80).optional(),
   mimeType: z.string().trim().max(120).optional(),
   byteSize: z.number().int().nonnegative().max(10 * 1024 * 1024).optional(),
+  /** null / omitted = all agents */
+  agentId: z.string().uuid().nullable().optional(),
+  syncAgents: z.boolean().optional().default(true),
 });
 
 export async function POST(request: Request) {
@@ -26,13 +30,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const doc = await createKnowledgeDocument({
-    organizationId: ctx.organization.id,
-    title: parsed.data.title,
-    category: parsed.data.category,
-    mimeType: parsed.data.mimeType,
-    byteSize: parsed.data.byteSize,
-  });
+  try {
+    const doc = await createKnowledgeDocument({
+      organizationId: ctx.organization.id,
+      title: parsed.data.title,
+      category: parsed.data.category,
+      mimeType: parsed.data.mimeType,
+      byteSize: parsed.data.byteSize,
+      agentId: parsed.data.agentId ?? null,
+    });
 
-  return NextResponse.json({ document: doc });
+    let sync: { synced: number; errors: string[] } | undefined;
+    if (parsed.data.syncAgents) {
+      sync = await syncKnowledgeToAgents(
+        ctx.organization.id,
+        parsed.data.agentId ?? null,
+      );
+    }
+
+    return NextResponse.json({ document: doc, sync });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Upload failed";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
 }

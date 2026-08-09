@@ -391,3 +391,295 @@ export async function upsertCallFromRetellEvent(raw: unknown): Promise<{ callId:
 
   return { callId };
 }
+
+type VapiCall = {
+  id?: string;
+  assistantId?: string;
+  phoneNumberId?: string;
+  type?: string;
+  status?: string;
+  startedAt?: string;
+  endedAt?: string;
+  customer?: { number?: string };
+  phoneNumber?: { number?: string };
+  metadata?: Record<string, unknown>;
+  analysis?: {
+    summary?: string;
+    successEvaluation?: string;
+    structuredData?: Record<string, unknown>;
+  };
+};
+
+type VapiMessageBody = {
+  message?: {
+    type?: string;
+    status?: string;
+    endedReason?: string;
+    call?: VapiCall;
+    assistant?: { id?: string; metadata?: Record<string, unknown> };
+    phoneNumber?: { number?: string; id?: string };
+    customer?: { number?: string };
+    artifact?: {
+      transcript?: string;
+      messages?: Array<{ role?: string; message?: string; content?: string }>;
+    };
+    analysis?: VapiCall["analysis"];
+  };
+};
+
+function mapVapiStatus(status?: string): CallStatus {
+  switch ((status ?? "").toLowerCase()) {
+    case "queued":
+    case "ringing":
+    case "in-progress":
+    case "forwarding":
+      return "in_progress";
+    case "ended":
+      return "completed";
+    default:
+      return "completed";
+  }
+}
+
+async function resolveOrgFromVapiCall(
+  admin: ReturnType<typeof createAdminClient>,
+  call: VapiCall,
+  assistantId: string | null,
+  toNumber: string | null,
+): Promise<{ organizationId: string; agentId: string | null; phoneNumberId: string | null } | null> {
+  if (assistantId) {
+    const { data: agent } = await admin
+      .from("ai_agents")
+      .select("id, organization_id")
+      .eq("external_agent_id", assistantId)
+      .maybeSingle();
+    if (agent) {
+      let phoneNumberId: string | null = null;
+      if (toNumber) {
+        const { data: phone } = await admin
+          .from("phone_numbers")
+          .select("id")
+          .eq("organization_id", agent.organization_id)
+          .eq("e164", toNumber)
+          .maybeSingle();
+        phoneNumberId = phone?.id ?? null;
+      }
+      return {
+        organizationId: agent.organization_id,
+        agentId: agent.id,
+        phoneNumberId,
+      };
+    }
+  }
+
+  if (toNumber) {
+    const { data: phone } = await admin
+      .from("phone_numbers")
+      .select("id, organization_id")
+      .eq("e164", toNumber)
+      .maybeSingle();
+    if (phone) {
+      const { data: assignment } = await admin
+        .from("phone_number_assignments")
+        .select("agent_id")
+        .eq("phone_number_id", phone.id)
+        .maybeSingle();
+      return {
+        organizationId: phone.organization_id,
+        agentId: assignment?.agent_id ?? null,
+        phoneNumberId: phone.id,
+      };
+    }
+  }
+
+  // Vapi phone id stored as provider_sid
+  if (call.phoneNumberId) {
+    const { data: phone } = await admin
+      .from("phone_numbers")
+      .select("id, organization_id")
+      .eq("provider_sid", call.phoneNumberId)
+      .maybeSingle();
+    if (phone) {
+      const { data: assignment } = await admin
+        .from("phone_number_assignments")
+        .select("agent_id")
+        .eq("phone_number_id", phone.id)
+        .maybeSingle();
+      return {
+        organizationId: phone.organization_id,
+        agentId: assignment?.agent_id ?? null,
+        phoneNumberId: phone.id,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Upsert a call row (and optional summary/transcript/outcomes) from a Vapi server-url payload.
+ */
+export async function upsertCallFromVapiEvent(raw: unknown): Promise<{ callId: string | null }> {
+  if (!getSupabaseEnv().configured || !getServiceRoleKey()) {
+    return { callId: null };
+  }
+
+  const body = raw as VapiMessageBody;
+  const message = body.message;
+  const call = message?.call;
+  if (!call?.id) return { callId: null };
+
+  const admin = createAdminClient();
+  const assistantId =
+    call.assistantId ?? message?.assistant?.id ?? null;
+  const toNumber =
+    call.phoneNumber?.number ?? message?.phoneNumber?.number ?? null;
+  const fromNumber =
+    call.customer?.number ?? message?.customer?.number ?? null;
+
+  const resolved = await resolveOrgFromVapiCall(admin, call, assistantId, toNumber);
+
+  const meta = {
+    ...(call.metadata ?? {}),
+    ...(message?.assistant?.metadata ?? {}),
+  };
+  const fromMeta =
+    (typeof meta.organization_id === "string" && meta.organization_id) ||
+    (typeof meta.organizationId === "string" && meta.organizationId) ||
+    null;
+
+  const organizationId =
+    fromMeta || resolved?.organizationId || process.env.DEFAULT_WEBHOOK_ORG_ID?.trim() || null;
+
+  if (!organizationId) {
+    console.warn("[calls:write] missing organization_id on Vapi call", call.id);
+    return { callId: null };
+  }
+
+  const statusFromMessage =
+    message?.type === "status-update" ? message.status : call.status;
+  const startedAt = call.startedAt ?? new Date().toISOString();
+  const endedAt =
+    call.endedAt ??
+    (message?.type === "end-of-call-report" || statusFromMessage === "ended"
+      ? new Date().toISOString()
+      : null);
+  const durationSeconds =
+    call.startedAt && endedAt
+      ? Math.max(
+          0,
+          Math.round((new Date(endedAt).getTime() - new Date(call.startedAt).getTime()) / 1000),
+        )
+      : null;
+
+  const direction =
+    (call.type ?? "").toLowerCase().includes("outbound") ? "outbound" : "inbound";
+
+  const row = {
+    organization_id: organizationId,
+    direction,
+    status: mapVapiStatus(statusFromMessage),
+    disposition: message?.endedReason ?? null,
+    from_number: fromNumber,
+    to_number: toNumber,
+    started_at: startedAt,
+    ended_at: endedAt,
+    duration_seconds: durationSeconds,
+    external_call_id: call.id,
+    external_provider: "vapi",
+    sentiment: null as string | null,
+    agent_id: resolved?.agentId ?? null,
+    phone_number_id: resolved?.phoneNumberId ?? null,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existing } = await admin
+    .from("calls")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("external_call_id", call.id)
+    .maybeSingle();
+
+  let callId = existing?.id ?? null;
+
+  if (existing) {
+    await admin.from("calls").update(row).eq("id", existing.id);
+  } else {
+    const { data: inserted, error } = await admin.from("calls").insert(row).select("id").single();
+    if (error) {
+      console.error("[calls:write] vapi insert failed", error.message);
+      return { callId: null };
+    }
+    callId = inserted.id;
+  }
+
+  if (!callId) return { callId: null };
+
+  await admin.from("call_events").insert({
+    organization_id: organizationId,
+    call_id: callId,
+    event_type: message?.type ?? "vapi_event",
+    payload: (raw ?? {}) as Record<string, unknown>,
+  });
+
+  const analysis = message?.analysis ?? call.analysis;
+  const summary = analysis?.summary ?? null;
+  if (summary) {
+    await admin.from("call_summaries").upsert(
+      {
+        organization_id: organizationId,
+        call_id: callId,
+        summary,
+        key_topics: [],
+        insights: [],
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "call_id" },
+    );
+  }
+
+  const turns = message?.artifact?.messages ?? [];
+  if (turns.length > 0) {
+    await admin.from("call_transcripts").delete().eq("call_id", callId);
+    const rows = turns.map((t, index) => ({
+      organization_id: organizationId,
+      call_id: callId!,
+      speaker:
+        t.role === "bot" || t.role === "assistant"
+          ? "ai"
+          : t.role === "user"
+            ? "caller"
+            : "system",
+      content: t.message ?? t.content ?? "",
+      sort_order: index,
+    }));
+    if (rows.length) {
+      await admin.from("call_transcripts").insert(rows);
+    }
+  } else if (message?.artifact?.transcript) {
+    await admin.from("call_transcripts").delete().eq("call_id", callId);
+    await admin.from("call_transcripts").insert({
+      organization_id: organizationId,
+      call_id: callId,
+      speaker: "system",
+      content: message.artifact.transcript,
+      sort_order: 0,
+    });
+  }
+
+  if (message?.type === "end-of-call-report" || analysis?.structuredData) {
+    try {
+      await upsertContactAndLead(admin, {
+        organizationId,
+        callId,
+        fromNumber,
+        summary,
+        analysis: analysis?.structuredData ?? {},
+      });
+    } catch (err) {
+      console.error("[calls:write] vapi outcome capture failed", err);
+    }
+  }
+
+  return { callId };
+}

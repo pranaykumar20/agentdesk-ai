@@ -20,7 +20,7 @@ Source of truth: `supabase/migrations/`.
 5. **CRM** — contacts, leads, lead_activities, callback_requests
 6. **Calls** — calls, participants, events, transcripts, recordings, summaries, tags, notes
 7. **Appointments** — services, appointment_types, appointments, availability_rules
-8. **Knowledge** — sources, documents, chunks, faq_items, business_policies
+8. **Knowledge** — sources, documents, chunks, faq_items, business_policies. Documents and FAQs may set nullable `agent_id` (specific AI employee) or leave it null (shared with all agents). On FAQ/document save, AgentDesk rewrites affected agents’ draft system prompts (knowledge appendix) and pushes them to Vapi automatically (`syncKnowledgeToAgents` / `POST /api/knowledge/sync`). Dashboard **Generate with AI** (`POST /api/knowledge/generate`) drafts FAQs/article summaries from a business brief; users review before save.
 9. **Integrations** — integrations, connections, events, webhook_events
 10. **Billing / analytics** — subscriptions, usage_records, daily_analytics, billing_events, audit_logs
 

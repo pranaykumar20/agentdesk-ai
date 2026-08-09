@@ -1,4 +1,11 @@
-export type ProviderMode = "mock" | "retell" | "twilio" | "stripe" | "google" | "local";
+export type ProviderMode =
+  | "mock"
+  | "retell"
+  | "vapi"
+  | "twilio"
+  | "stripe"
+  | "google"
+  | "local";
 
 export interface VoiceAgentInput {
   organizationId: string;
@@ -39,7 +46,7 @@ export interface TelephonyProvider {
   provisionNumber(input: {
     organizationId: string;
     areaCode?: string;
-    /** Retell agent id to bind for inbound (required when provider is retell) */
+    /** External voice agent/assistant id to bind for inbound (Retell/Vapi) */
     inboundAgentId?: string;
   }): Promise<{ e164: string; providerSid: string }>;
   connectNumber(input: {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AgentSelect, type KnowledgeAgentOption } from "./AgentSelect";
 
 const ALLOWED = [
   "application/pdf",
@@ -14,7 +15,7 @@ const ALLOWED = [
 ];
 const MAX_BYTES = 10 * 1024 * 1024;
 
-export function UploadDocumentForm() {
+export function UploadDocumentForm({ agents }: { agents: KnowledgeAgentOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -28,6 +29,8 @@ export function UploadDocumentForm() {
     const file = form.get("file") as File | null;
     const title = String(form.get("title") ?? "").trim();
     const category = String(form.get("category") ?? "General");
+    const agentRaw = String(form.get("agentId") ?? "").trim();
+    const agentId = agentRaw || null;
 
     if (!title) {
       setError("Title is required");
@@ -59,6 +62,7 @@ export function UploadDocumentForm() {
           category,
           mimeType: file.type || "text/plain",
           byteSize: file.size,
+          agentId,
         }),
       });
       const data = (await res.json()) as { error?: string };
@@ -84,7 +88,10 @@ export function UploadDocumentForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="w-full max-w-md space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm">
+    <form
+      onSubmit={onSubmit}
+      className="w-full max-w-md space-y-3 rounded-xl border border-border bg-card p-4 shadow-sm"
+    >
       <div className="space-y-1">
         <Label htmlFor="title">Article title</Label>
         <Input id="title" name="title" required />
@@ -93,12 +100,20 @@ export function UploadDocumentForm() {
         <Label htmlFor="category">Category</Label>
         <Input id="category" name="category" defaultValue="General" />
       </div>
+      <AgentSelect agents={agents} />
       <div className="space-y-1">
         <Label htmlFor="file">File (PDF, DOCX, TXT — max 10MB)</Label>
-        <Input id="file" name="file" type="file" accept=".pdf,.docx,.txt,.md,application/pdf,text/plain" required />
+        <Input
+          id="file"
+          name="file"
+          type="file"
+          accept=".pdf,.docx,.txt,.md,application/pdf,text/plain"
+          required
+        />
       </div>
       <p className="text-xs text-muted-foreground">
-        Phase D stores metadata and runs a mock processing workflow. Binary upload to private storage lands in a later phase.
+        Phase D stores metadata and runs a mock processing workflow. Binary upload to private
+        storage lands in a later phase.
       </p>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <div className="flex gap-2">

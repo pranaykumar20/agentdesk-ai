@@ -8,6 +8,13 @@ import { planHasFeature } from "@/modules/billing/feature-access";
 
 export const dynamic = "force-dynamic";
 
+const capabilitySchema = z.object({
+  key: z.string().trim().min(1).max(80),
+  title: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(300),
+  enabled: z.boolean(),
+});
+
 const createSchema = z.object({
   name: z.string().trim().min(1).max(120),
   roleTitle: z.string().trim().min(1).max(80),
@@ -16,7 +23,10 @@ const createSchema = z.object({
   language: z.string().trim().max(80).optional(),
   voice: z.string().trim().max(80).optional(),
   greeting: z.string().trim().max(500).optional(),
-  systemPrompt: z.string().trim().max(8000).optional(),
+  systemPrompt: z.string().trim().max(20_000).optional(),
+  tone: z.string().trim().max(80).optional(),
+  industry: z.string().trim().max(40).optional(),
+  capabilities: z.array(capabilitySchema).max(20).optional(),
 });
 
 export async function GET() {

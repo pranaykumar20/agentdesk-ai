@@ -31,6 +31,9 @@ const agentSchema = z.object({
   name: z.string().trim().min(1).max(120),
   roleTitle: z.string().trim().min(1).max(80).default("Receptionist"),
   description: z.string().trim().max(500).optional(),
+  /** e.g. en-US or te-IN (Telugu via Vapi Deepgram STT + Azure TTS) */
+  language: z.string().trim().min(2).max(16).optional(),
+  voice: z.string().trim().min(1).max(80).optional(),
 });
 
 const phoneSchema = z.object({
@@ -77,12 +80,14 @@ export async function POST(request: Request) {
       if (!parsed.success) {
         return NextResponse.json({ error: "Invalid AI employee payload" }, { status: 400 });
       }
-      const industry = ctx.organization.industry ?? "general";
+      const language = parsed.data.language ?? "en-US";
+      // Role training template is applied inside createAiEmployee (identity, flows, guardrails).
       const agent = await createAiEmployee(ctx.organization.id, {
         name: parsed.data.name,
         roleTitle: parsed.data.roleTitle,
         description: parsed.data.description,
-        systemPrompt: `You are ${parsed.data.name}, a ${parsed.data.roleTitle} for a ${industry} business. Answer FAQs, capture caller name and phone, take reservation or appointment requests, and offer a callback when needed.`,
+        language,
+        voice: parsed.data.voice,
       });
       const published = await publishAgent(ctx.organization.id, agent.id);
       const progress = await saveOnboardingStep(ctx.organization.id, 3, {

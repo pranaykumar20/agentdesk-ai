@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CloneEmployeeButton } from "@/components/ai-employees/CloneEmployeeButton";
 import { getAiEmployeeMetrics, listAiEmployees } from "@/modules/agents/data";
 import type { EmployeeLifecycleStatus } from "@/modules/agents/types";
 
@@ -104,6 +105,7 @@ export default async function AiEmployeesPage() {
                 <TableHead>Performance</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Version</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -132,6 +134,9 @@ export default async function AiEmployeesPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {employee.publishedVersion != null ? `v${employee.publishedVersion}` : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <CloneEmployeeButton employeeId={employee.id} />
                   </TableCell>
                 </TableRow>
               ))}

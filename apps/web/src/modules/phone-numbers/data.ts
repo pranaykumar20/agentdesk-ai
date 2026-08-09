@@ -108,7 +108,7 @@ export async function provisionPhoneNumber(
     : await getPublishedAgentForOrg(organizationId);
 
   if (!agent?.externalAgentId) {
-    throw new Error("Publish an AI employee before provisioning a phone number");
+    throw new Error("AI employee must be synced to Vapi before provisioning a phone number");
   }
 
   const telephony = getTelephonyProvider();

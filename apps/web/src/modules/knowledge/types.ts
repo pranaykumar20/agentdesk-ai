@@ -1,5 +1,8 @@
 export type KnowledgeStatus = "draft" | "processing" | "published" | "failed" | "archived";
 
+/** Filter for KB lists: all rows, shared only (null agent), or one agent. */
+export type KnowledgeAgentFilter = "all" | "shared" | string;
+
 export type KnowledgeDocument = {
   id: string;
   organizationId: string;
@@ -11,6 +14,9 @@ export type KnowledgeDocument = {
   viewCount: number;
   helpfulRate: number | null;
   updatedAt: string;
+  /** null = available to all agents in the org */
+  agentId: string | null;
+  agentName?: string | null;
 };
 
 export type FaqItem = {
@@ -20,6 +26,9 @@ export type FaqItem = {
   answer: string;
   category: string | null;
   status: KnowledgeStatus;
+  /** null = available to all agents in the org */
+  agentId: string | null;
+  agentName?: string | null;
 };
 
 export type KnowledgeMetrics = {

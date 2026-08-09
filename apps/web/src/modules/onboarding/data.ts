@@ -146,4 +146,8 @@ export async function saveBusinessKnowledge(
       status: "published",
     });
   }
+
+  // Shared onboarding FAQs → refresh agent drafts + Vapi without a manual publish click.
+  const { syncKnowledgeToAgents } = await import("@/modules/agents/data");
+  await syncKnowledgeToAgents(organizationId, null);
 }

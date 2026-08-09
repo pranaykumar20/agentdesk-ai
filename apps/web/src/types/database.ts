@@ -255,6 +255,7 @@ export type Database = {
           view_count: number;
           helpful_rate: number | null;
           updated_by: string | null;
+          agent_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -271,9 +272,18 @@ export type Database = {
           view_count?: number;
           helpful_rate?: number | null;
           updated_by?: string | null;
+          agent_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["knowledge_documents"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_documents_agent_id_fkey";
+            columns: ["agent_id"];
+            isOneToOne: false;
+            referencedRelation: "ai_agents";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       faq_items: {
         Row: {
@@ -283,6 +293,7 @@ export type Database = {
           answer: string;
           category: string | null;
           status: string;
+          agent_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -293,9 +304,18 @@ export type Database = {
           answer: string;
           category?: string | null;
           status?: string;
+          agent_id?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["faq_items"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "faq_items_agent_id_fkey";
+            columns: ["agent_id"];
+            isOneToOne: false;
+            referencedRelation: "ai_agents";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       daily_analytics: {
         Row: {
@@ -372,6 +392,8 @@ export type Database = {
           external_agent_id?: string | null;
           lifecycle_status?: string;
           department?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["ai_agents"]["Insert"]>;
         Relationships: [];
@@ -402,6 +424,8 @@ export type Database = {
           behavior?: Json;
           created_by?: string | null;
           published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["ai_agent_versions"]["Insert"]>;
         Relationships: [];

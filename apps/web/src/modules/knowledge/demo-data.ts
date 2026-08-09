@@ -1,6 +1,7 @@
 import type { FaqItem, KnowledgeDocument } from "./types";
 
 const docsStore = new Map<string, KnowledgeDocument[]>();
+const faqsStore = new Map<string, FaqItem[]>();
 
 export function buildDemoDocuments(organizationId: string): KnowledgeDocument[] {
   return [
@@ -15,6 +16,8 @@ export function buildDemoDocuments(organizationId: string): KnowledgeDocument[] 
       viewCount: 842,
       helpfulRate: 95,
       updatedAt: new Date(Date.now() - 2 * 86400_000).toISOString(),
+      agentId: null,
+      agentName: null,
     },
     {
       id: "demo-doc-002",
@@ -27,6 +30,8 @@ export function buildDemoDocuments(organizationId: string): KnowledgeDocument[] 
       viewCount: 512,
       helpfulRate: 91,
       updatedAt: new Date(Date.now() - 5 * 86400_000).toISOString(),
+      agentId: null,
+      agentName: null,
     },
     {
       id: "demo-doc-003",
@@ -39,6 +44,8 @@ export function buildDemoDocuments(organizationId: string): KnowledgeDocument[] 
       viewCount: 1204,
       helpfulRate: 97,
       updatedAt: new Date(Date.now() - 1 * 86400_000).toISOString(),
+      agentId: null,
+      agentName: null,
     },
     {
       id: "demo-doc-004",
@@ -51,6 +58,8 @@ export function buildDemoDocuments(organizationId: string): KnowledgeDocument[] 
       viewCount: 12,
       helpfulRate: null,
       updatedAt: new Date().toISOString(),
+      agentId: null,
+      agentName: null,
     },
     {
       id: "demo-doc-005",
@@ -63,6 +72,8 @@ export function buildDemoDocuments(organizationId: string): KnowledgeDocument[] 
       viewCount: 0,
       helpfulRate: null,
       updatedAt: new Date().toISOString(),
+      agentId: null,
+      agentName: null,
     },
   ];
 }
@@ -86,6 +97,8 @@ export function buildDemoFaqs(organizationId: string): FaqItem[] {
       answer: "We are open Monday–Friday 8am–5pm and Saturday 9am–1pm.",
       category: "Hours",
       status: "published",
+      agentId: null,
+      agentName: null,
     },
     {
       id: "demo-faq-002",
@@ -94,6 +107,8 @@ export function buildDemoFaqs(organizationId: string): FaqItem[] {
       answer: "Yes, we accept most major dental insurance plans.",
       category: "Insurance",
       status: "published",
+      agentId: null,
+      agentName: null,
     },
     {
       id: "demo-faq-003",
@@ -102,6 +117,18 @@ export function buildDemoFaqs(organizationId: string): FaqItem[] {
       answer: "Call us anytime — our AI receptionist can book, reschedule, or cancel.",
       category: "Appointments",
       status: "published",
+      agentId: null,
+      agentName: null,
     },
   ];
+}
+
+export function getDemoFaqs(organizationId: string): FaqItem[] {
+  const extras = faqsStore.get(organizationId) ?? [];
+  return [...extras, ...buildDemoFaqs(organizationId)];
+}
+
+export function addDemoFaq(faq: FaqItem): void {
+  const list = faqsStore.get(faq.organizationId) ?? [];
+  faqsStore.set(faq.organizationId, [faq, ...list]);
 }

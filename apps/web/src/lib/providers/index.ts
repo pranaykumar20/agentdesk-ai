@@ -6,18 +6,22 @@ import { retellTelephonyProvider } from "./retell/telephony";
 import { retellVoiceProvider } from "./retell/voice";
 import { stripeBillingProvider } from "./stripe/billing";
 import { twilioTelephonyProvider } from "./twilio/telephony";
+import { vapiTelephonyProvider } from "./vapi/telephony";
+import { vapiVoiceProvider } from "./vapi/voice";
 import type { BillingProvider, CalendarProvider, TelephonyProvider, VoiceProvider } from "./types";
 
 export type * from "./types";
 
 export function getVoiceProvider(): VoiceProvider {
   const mode = process.env.VOICE_PROVIDER?.trim() || "mock";
+  if (mode === "vapi") return vapiVoiceProvider;
   if (mode === "retell") return retellVoiceProvider;
   return mockVoiceProvider;
 }
 
 export function getTelephonyProvider(): TelephonyProvider {
   const mode = process.env.TELEPHONY_PROVIDER?.trim() || "mock";
+  if (mode === "vapi") return vapiTelephonyProvider;
   if (mode === "retell") return retellTelephonyProvider;
   if (mode === "twilio") return twilioTelephonyProvider;
   return mockTelephonyProvider;

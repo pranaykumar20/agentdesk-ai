@@ -1,4 +1,4 @@
-import { upsertCallFromRetellEvent } from "@/modules/calls/write";
+import { upsertCallFromRetellEvent, upsertCallFromVapiEvent } from "@/modules/calls/write";
 import type { JobName, JobPayload } from "./types";
 
 export async function runJob<T extends JobName>(name: T, payload: JobPayload[T]): Promise<void> {
@@ -9,8 +9,14 @@ export async function runJob<T extends JobName>(name: T, payload: JobPayload[T])
       await upsertCallFromRetellEvent(p.raw);
       return;
     }
+    case "process_vapi_status_update":
+    case "process_vapi_end_of_call": {
+      const p = payload as JobPayload["process_vapi_status_update"];
+      await upsertCallFromVapiEvent(p.raw);
+      return;
+    }
     case "process_twilio_status": {
-      // Telephony status is logged via webhook_events; call sync is Retell-primary in Phase G.
+      // Telephony status is logged via webhook_events; voice sync is provider-primary.
       return;
     }
     default:

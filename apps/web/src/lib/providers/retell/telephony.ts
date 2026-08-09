@@ -19,6 +19,11 @@ async function retellFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    if (res.status === 402 || /card on file|add payment/i.test(text)) {
+      throw new Error(
+        "Retell requires a payment method before buying phone numbers. Add a card in the Retell dashboard (Billing), then try again.",
+      );
+    }
     throw new Error(`Retell ${path} failed (${res.status}): ${text.slice(0, 300)}`);
   }
   if (res.status === 204) return undefined as T;
@@ -50,9 +55,12 @@ export const retellTelephonyProvider: TelephonyProvider = {
     if (!input.inboundAgentId) {
       throw new Error("inboundAgentId is required to provision a Retell phone number");
     }
+    // Retell deprecated inbound_agent_id / outbound_agent_id (2026-03-31).
+    // Use weighted agent lists instead: https://docs.retellai.com/deprecation-notice/2026/03-31_phone_number_agent_fields
+    const agentBinding = [{ agent_id: input.inboundAgentId, weight: 1 }];
     const body: Record<string, unknown> = {
-      inbound_agent_id: input.inboundAgentId,
-      outbound_agent_id: input.inboundAgentId,
+      inbound_agents: agentBinding,
+      outbound_agents: agentBinding,
     };
     if (input.areaCode) {
       const area = Number(input.areaCode);
@@ -70,11 +78,12 @@ export const retellTelephonyProvider: TelephonyProvider = {
 
   async connectNumber(input) {
     if (input.inboundAgentId) {
+      const agentBinding = [{ agent_id: input.inboundAgentId, weight: 1 }];
       await retellFetch(`/update-phone-number/${encodeURIComponent(input.e164)}`, {
         method: "PATCH",
         body: JSON.stringify({
-          inbound_agent_id: input.inboundAgentId,
-          outbound_agent_id: input.inboundAgentId,
+          inbound_agents: agentBinding,
+          outbound_agents: agentBinding,
         }),
       });
     }

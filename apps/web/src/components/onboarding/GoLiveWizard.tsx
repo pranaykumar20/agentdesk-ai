@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { OnboardingProgress } from "@/modules/onboarding/data";
+import { AGENT_LANGUAGES, voicesForLanguage } from "@/modules/agents/voice-options";
 
 export function GoLiveWizard({
   initialProgress,
@@ -26,6 +27,8 @@ export function GoLiveWizard({
   const [faqA, setFaqA] = useState("We're open Monday through Saturday; closed Sunday.");
   const [agentName, setAgentName] = useState("Ava Receptionist");
   const [roleTitle, setRoleTitle] = useState("Receptionist");
+  const [language, setLanguage] = useState("en-US");
+  const [voice, setVoice] = useState(voicesForLanguage("en-US")[0]!.value);
   const [areaCode, setAreaCode] = useState("513");
   const [phoneE164, setPhoneE164] = useState<string | null>(
     typeof initialProgress.data.e164 === "string" ? initialProgress.data.e164 : null,
@@ -122,6 +125,45 @@ export function GoLiveWizard({
               onChange={(e) => setRoleTitle(e.target.value)}
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="language">Language</Label>
+            <select
+              id="language"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={language}
+              onChange={(e) => {
+                const next = e.target.value;
+                setLanguage(next);
+                setVoice(voicesForLanguage(next)[0]!.value);
+              }}
+            >
+              {AGENT_LANGUAGES.map((lang) => (
+                <option key={lang.value} value={lang.value}>
+                  {lang.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="voice">Voice</Label>
+            <select
+              id="voice"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={voice}
+              onChange={(e) => setVoice(e.target.value)}
+            >
+              {voicesForLanguage(language).map((v) => (
+                <option key={v.value} value={v.value}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
+            {language === "te-IN" ? (
+              <p className="text-xs text-muted-foreground">
+                Telugu uses Deepgram speech recognition and Azure neural voices (Shruti / Mohan).
+              </p>
+            ) : null}
+          </div>
           <Button
             disabled={busy}
             onClick={() =>
@@ -129,6 +171,8 @@ export function GoLiveWizard({
                 step: 3,
                 name: agentName,
                 roleTitle,
+                language,
+                voice,
               })
             }
           >
@@ -140,8 +184,8 @@ export function GoLiveWizard({
       {step === 4 ? (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Provision a Retell phone number bound to your AI employee. Callers who dial this number
-            reach your AI receptionist.
+            Provision a phone number bound to your AI employee. Callers who dial this number reach
+            your AI receptionist.
           </p>
           <div className="space-y-2">
             <Label htmlFor="areaCode">Preferred area code</Label>

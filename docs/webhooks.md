@@ -4,7 +4,8 @@
 
 | Path | Provider | Notes |
 |------|----------|--------|
-| `/api/webhooks/retell` | Retell AI | HMAC `x-retell-signature`; enqueues call sync jobs |
+| `/api/webhooks/vapi` | Vapi | Server URL; Bearer / `x-vapi-secret`; enqueues call sync jobs |
+| `/api/webhooks/retell` | Retell AI | HMAC `x-retell-signature`; enqueues call sync jobs (fallback) |
 | `/api/webhooks/twilio/voice` | Twilio | Signature via auth token; returns TwiML |
 | `/api/webhooks/twilio/status` | Twilio | Call status callback; idempotent |
 | `/api/webhooks/twilio/outbound` | Twilio | Outbound TwiML callback |
@@ -23,14 +24,15 @@
 
 | Variable | Purpose |
 |----------|---------|
-| `RETELL_API_KEY` / `RETELL_WEBHOOK_SECRET` | Retell API + webhook HMAC |
+| `VAPI_API_KEY` / `VAPI_WEBHOOK_SECRET` | Vapi API + webhook shared secret |
+| `RETELL_API_KEY` / `RETELL_WEBHOOK_SECRET` | Retell API + webhook HMAC (fallback) |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` | Twilio API + signature validation |
 | `TWILIO_WEBHOOK_BASE_URL` | Public URL Twilio used when signing |
 | `STRIPE_WEBHOOK_SECRET` | Stripe signature |
 | `SUPABASE_SERVICE_ROLE_KEY` | Persist `webhook_events` / call writes |
-| `DEFAULT_WEBHOOK_ORG_ID` | Fallback org when Retell metadata omits `organization_id` |
+| `DEFAULT_WEBHOOK_ORG_ID` | Fallback org when call metadata omits `organizationId` |
 | `JOBS_PROVIDER` | `local` (default) |
 
 Stripe subscription state is updated only from verified webhooks, not checkout success redirects alone.
 
-Call conversation sync is **Retell-primary**. Twilio voice webhooks acknowledge PSTN; AI media streams via `apps/voice-worker` are deprecated.
+Call conversation sync is **Vapi-primary** (`status-update`, `end-of-call-report`). Retell webhooks remain for rollback. Twilio voice webhooks acknowledge PSTN; AI media streams via `apps/voice-worker` are deprecated.

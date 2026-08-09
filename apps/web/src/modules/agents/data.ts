@@ -4,6 +4,20 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
 import {
+  listFaqs,
+  listKnowledgeDocuments,
+  listKnowledgeForAgent,
+} from "@/modules/knowledge/data";
+import {
+  buildKnowledgePromptAppendix,
+  composeSystemPromptWithKnowledge,
+} from "@/modules/knowledge/prompt";
+import { defaultCapabilities, mergeCapabilitiesBlock } from "./capabilities";
+import {
+  buildRoleSystemPrompt,
+  defaultGreetingForRole,
+} from "./role-templates";
+import {
   addDemoAgent,
   getDemoAgent,
   getDemoAgentById,
@@ -11,6 +25,129 @@ import {
   setDemoAgent,
 } from "./demo-data";
 import type { AiAgent, AiEmployeeSummary, AgentCapability, EmployeeLifecycleStatus } from "./types";
+
+async function resolveBusinessName(organizationId: string): Promise<string> {
+  if (!getSupabaseEnv().configured) return "your business";
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("organizations")
+      .select("name")
+      .eq("id", organizationId)
+      .maybeSingle();
+    return data?.name?.trim() || "your business";
+  } catch {
+    return "your business";
+  }
+}
+
+async function systemPromptWithKnowledge(
+  organizationId: string,
+  userPrompt: string,
+  agentId?: string,
+): Promise<string> {
+  const knowledge = agentId
+    ? await listKnowledgeForAgent(organizationId, agentId)
+    : {
+        faqs: await listFaqs(organizationId, { agentFilter: "shared" }),
+        documents: await listKnowledgeDocuments(organizationId, { agentFilter: "shared" }),
+      };
+  const appendix = buildKnowledgePromptAppendix(knowledge);
+  return composeSystemPromptWithKnowledge(userPrompt, appendix);
+}
+
+/**
+ * After Knowledge Base changes: rewrite each affected agent's draft system prompt
+ * (base instructions + fresh FAQ appendix) and push live to the voice provider (Vapi).
+ * `agentId` null = shared knowledge → sync every AI employee in the org.
+ */
+export async function syncKnowledgeToAgents(
+  organizationId: string,
+  agentId?: string | null,
+): Promise<{ synced: number; errors: string[] }> {
+  const fromDb = await listAgentsFromDb(organizationId);
+  const agents =
+    fromDb ?? (shouldUseDemoData() ? listDemoAgents(organizationId) : []);
+  const targets = agentId ? agents.filter((a) => a.id === agentId) : agents;
+
+  const errors: string[] = [];
+  let synced = 0;
+  const voice = getVoiceProvider();
+
+  for (const agent of targets) {
+    try {
+      const composed = await systemPromptWithKnowledge(
+        organizationId,
+        agent.draft.systemPrompt,
+        agent.id,
+      );
+
+      if (agent.externalAgentId) {
+        await voice.updateAgent(agent.externalAgentId, {
+          name: agent.name,
+          voice: agent.voice,
+          language: agent.language,
+          greeting: agent.draft.greeting,
+          systemPrompt: composed,
+          externalLlmId: agent.externalLlmId ?? undefined,
+          organizationId,
+        });
+        await voice.publishAgent(agent.externalAgentId);
+      }
+
+      if (!getSupabaseEnv().configured) {
+        setDemoAgent(organizationId, {
+          ...agent,
+          draft: {
+            ...agent.draft,
+            systemPrompt: composed,
+            updatedAt: new Date().toISOString(),
+          },
+          updatedAt: new Date().toISOString(),
+        });
+        synced += 1;
+        continue;
+      }
+
+      const supabase = await createClient();
+      const now = new Date().toISOString();
+      await supabase
+        .from("ai_agent_versions")
+        .update({
+          system_prompt: composed,
+          updated_at: now,
+        })
+        .eq("id", agent.draft.id)
+        .eq("organization_id", organizationId);
+
+      // Keep published version in sync too when one exists (live calls use published prompt on next publish path).
+      if (agent.published?.id) {
+        await supabase
+          .from("ai_agent_versions")
+          .update({
+            system_prompt: composed,
+            updated_at: now,
+          })
+          .eq("id", agent.published.id)
+          .eq("organization_id", organizationId);
+      }
+
+      await supabase
+        .from("ai_agents")
+        .update({ updated_at: now })
+        .eq("id", agent.id)
+        .eq("organization_id", organizationId);
+
+      synced += 1;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "sync failed";
+      errors.push(`${agent.name}: ${message}`);
+      console.error("[syncKnowledgeToAgents]", agent.id, message);
+    }
+  }
+
+  return { synced, errors };
+}
 
 type Behavior = {
   retellLlmId?: string;
@@ -103,7 +240,12 @@ function mapRowToAgent(
     personality: behavior.personality ?? "Friendly professional",
     performanceScore: null,
     tags: behavior.tags ?? [],
-    model: "retell-llm",
+    model:
+      row.external_provider === "vapi"
+        ? "vapi-assistant"
+        : row.external_provider === "retell"
+          ? "retell-llm"
+          : row.external_provider || "voice",
     confidenceThreshold: 80,
     capabilities: behavior.capabilities ?? [],
     draft: {
@@ -247,24 +389,46 @@ export async function createAiEmployee(
     voice?: string;
     greeting?: string;
     systemPrompt?: string;
+    tone?: string;
+    industry?: string;
+    capabilities?: AgentCapability[];
   },
 ): Promise<AiAgent> {
   const now = new Date().toISOString();
-  const greeting =
-    input.greeting ?? `Hi! Thanks for calling. I'm ${input.name}. How can I help?`;
-  const systemPrompt =
-    input.systemPrompt ??
-    `You are ${input.name}, a ${input.roleTitle}. Answer questions, capture caller details, and book appointments when asked.`;
+  const businessName = await resolveBusinessName(organizationId);
+  const language = input.language ?? "en-US";
+  const tone = input.tone?.trim() || "Friendly professional";
+  const capabilities = input.capabilities?.length
+    ? input.capabilities
+    : defaultCapabilities();
+  const roleCtx = {
+    agentName: input.name,
+    businessName,
+    roleTitle: input.roleTitle,
+    tone,
+    industry: input.industry,
+    language,
+  };
+  const greeting = input.greeting ?? defaultGreetingForRole(roleCtx);
+  // Role training prompt (identity, flows, guardrails) + empty Knowledge Base section.
+  // Extra FAQs/docs are merged into ## Knowledge Base on KB save / agent sync.
+  const basePrompt = input.systemPrompt ?? buildRoleSystemPrompt(roleCtx);
+  const systemPrompt = mergeCapabilitiesBlock(basePrompt, capabilities);
 
   const voice = getVoiceProvider();
+  // New agents only have shared KB yet (no agent id). Agent-specific FAQs attach on later saves.
+  const promptForProvider = await systemPromptWithKnowledge(organizationId, systemPrompt);
   const created = await voice.createAgent({
     organizationId,
     name: input.name,
     greeting,
-    systemPrompt,
+    systemPrompt: promptForProvider,
     voice: input.voice,
-    language: input.language ?? "en-US",
+    language,
   });
+
+  const modelLabel =
+    voice.name === "vapi" ? "vapi-assistant" : voice.name === "retell" ? "retell-llm" : voice.name;
 
   if (!getSupabaseEnv().configured) {
     if (!shouldUseDemoData()) {
@@ -278,25 +442,27 @@ export async function createAiEmployee(
       roleTitle: input.roleTitle,
       description: input.description ?? "",
       department: input.department ?? "General",
-      language: input.language ?? "en-US",
-      voice: input.voice ?? "11labs-Adrian",
+      language,
+      voice:
+        input.voice ??
+        (language.toLowerCase().startsWith("te") ? "te-IN-ShrutiNeural" : "Elliot"),
       timezone: "America/New_York",
       status: "inactive",
       lifecycleStatus: "draft",
       avatarUrl: null,
-      personality: "Friendly professional",
+      personality: tone,
       performanceScore: null,
-      tags: [],
-      model: "retell-llm",
+      tags: input.industry ? [`industry:${input.industry}`] : [],
+      model: modelLabel,
       confidenceThreshold: 80,
-      capabilities: [],
+      capabilities,
       draft: {
         id: `ver-draft-${id}`,
         versionNumber: 1,
         status: "draft",
         greeting,
         systemPrompt,
-        tone: "Friendly professional",
+        tone,
         publishedAt: null,
         updatedAt: now,
       },
@@ -311,12 +477,12 @@ export async function createAiEmployee(
 
   const supabase = await createClient();
   const behavior: Behavior = {
-    retellLlmId: created.externalLlmId,
-    tone: "Friendly professional",
-    personality: "Friendly professional",
+    ...(created.externalLlmId ? { retellLlmId: created.externalLlmId } : {}),
+    tone,
+    personality: tone,
     department: input.department ?? "General",
-    capabilities: [],
-    tags: [],
+    capabilities,
+    tags: input.industry ? [`industry:${input.industry}`] : [],
   };
 
   const { data: row, error } = await supabase
@@ -328,8 +494,10 @@ export async function createAiEmployee(
       description: input.description ?? null,
       status: "inactive",
       lifecycle_status: "draft",
-      primary_language: input.language ?? "en-US",
-      voice: input.voice ?? "11labs-Adrian",
+      primary_language: language,
+      voice:
+        input.voice ??
+        (language.toLowerCase().startsWith("te") ? "te-IN-ShrutiNeural" : "Elliot"),
       timezone: "America/New_York",
       department: input.department ?? "General",
       external_provider: voice.name,
@@ -385,19 +553,28 @@ export async function updateAgentDraft(
     : await getAiAgent(organizationId);
 
   const nextGreeting = patch.greeting ?? agent.draft.greeting;
-  const nextPrompt = patch.systemPrompt ?? agent.draft.systemPrompt;
+  const nextCapabilities = patch.capabilities ?? agent.capabilities;
+  let nextPrompt = patch.systemPrompt ?? agent.draft.systemPrompt;
+  if (patch.capabilities) {
+    nextPrompt = mergeCapabilitiesBlock(nextPrompt, nextCapabilities);
+  }
   const nextName = patch.name ?? agent.name;
   const nextVoice = patch.voice ?? agent.voice;
   const nextLanguage = patch.language ?? agent.language;
 
   if (agent.externalAgentId) {
     const voice = getVoiceProvider();
+    const promptForProvider = await systemPromptWithKnowledge(
+      organizationId,
+      nextPrompt,
+      agent.id,
+    );
     await voice.updateAgent(agent.externalAgentId, {
       name: nextName,
       voice: nextVoice,
       language: nextLanguage,
       greeting: nextGreeting,
-      systemPrompt: nextPrompt,
+      systemPrompt: promptForProvider,
       externalLlmId: agent.externalLlmId ?? undefined,
       organizationId,
     });
@@ -413,7 +590,7 @@ export async function updateAgentDraft(
       language: nextLanguage,
       department: patch.department ?? agent.department,
       lifecycleStatus: patch.lifecycleStatus ?? agent.lifecycleStatus,
-      capabilities: patch.capabilities ?? agent.capabilities,
+      capabilities: nextCapabilities,
       updatedAt: new Date().toISOString(),
       draft: {
         ...agent.draft,
@@ -445,11 +622,11 @@ export async function updateAgentDraft(
     .eq("organization_id", organizationId);
 
   const behavior: Behavior = {
-    retellLlmId: agent.externalLlmId ?? undefined,
+    ...(agent.externalLlmId ? { retellLlmId: agent.externalLlmId } : {}),
     tone: patch.tone ?? agent.draft.tone,
     personality: agent.personality,
     department: patch.department ?? agent.department,
-    capabilities: patch.capabilities ?? agent.capabilities,
+    capabilities: nextCapabilities,
     tags: agent.tags,
   };
 
@@ -470,7 +647,7 @@ export async function updateAgentDraft(
   return reloaded;
 }
 
-/** Publish draft → new published version. Syncs Retell using stored external ids. */
+/** Publish draft → new published version. Syncs voice provider using stored external ids. */
 export async function publishAgent(organizationId: string, id?: string): Promise<AiAgent> {
   const agent = id
     ? ((await getAiEmployeeById(organizationId, id)) ?? (await getAiAgent(organizationId)))
@@ -481,12 +658,17 @@ export async function publishAgent(organizationId: string, id?: string): Promise
   }
 
   const voice = getVoiceProvider();
+  const promptForProvider = await systemPromptWithKnowledge(
+    organizationId,
+    agent.draft.systemPrompt,
+    agent.id,
+  );
   await voice.updateAgent(agent.externalAgentId, {
     name: agent.name,
     voice: agent.voice,
     language: agent.language,
     greeting: agent.draft.greeting,
-    systemPrompt: agent.draft.systemPrompt,
+    systemPrompt: promptForProvider,
     externalLlmId: agent.externalLlmId ?? undefined,
     organizationId,
   });
@@ -521,7 +703,7 @@ export async function publishAgent(organizationId: string, id?: string): Promise
   const supabase = await createClient();
   const now = new Date().toISOString();
   const behavior: Behavior = {
-    retellLlmId: agent.externalLlmId ?? undefined,
+    ...(agent.externalLlmId ? { retellLlmId: agent.externalLlmId } : {}),
     tone: agent.draft.tone,
     personality: agent.personality,
     department: agent.department,
@@ -582,6 +764,7 @@ export async function publishAgent(organizationId: string, id?: string): Promise
 export async function cloneAiEmployee(organizationId: string, id: string): Promise<AiAgent | null> {
   const source = await getAiEmployeeById(organizationId, id);
   if (!source) return null;
+  const industryTag = source.tags.find((t) => t.startsWith("industry:"));
   return createAiEmployee(organizationId, {
     name: `${source.name} (Copy)`,
     roleTitle: source.roleTitle,
@@ -591,5 +774,27 @@ export async function cloneAiEmployee(organizationId: string, id: string): Promi
     voice: source.voice,
     greeting: source.draft.greeting,
     systemPrompt: source.draft.systemPrompt,
+    tone: source.draft.tone,
+    industry: industryTag?.slice("industry:".length),
+    capabilities:
+      source.capabilities.length > 0 ? source.capabilities : defaultCapabilities(),
+  });
+}
+
+export async function initiateEmployeeTestCall(input: {
+  organizationId: string;
+  agentId: string;
+  toNumber: string;
+  fromNumber?: string;
+}): Promise<{ externalCallId: string }> {
+  const agent = await getAiEmployeeById(input.organizationId, input.agentId);
+  if (!agent?.externalAgentId) {
+    throw new Error("AI employee is not synced to the voice provider yet");
+  }
+  const voice = getVoiceProvider();
+  return voice.initiateTestCall({
+    externalAgentId: agent.externalAgentId,
+    toNumber: input.toNumber,
+    fromNumber: input.fromNumber,
   });
 }
