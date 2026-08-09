@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -75,12 +76,12 @@ export function GoLiveWizard({
         <p className="mt-2 text-sm text-muted-foreground">
           Quick launch creates and publishes a receptionist. For industry templates, capabilities,
           draft-first publish, and richer knowledge seeding, use the{" "}
-          <a
+          <Link
             href="/dashboard/ai-employees/new"
             className="font-medium text-primary underline-offset-4 hover:underline"
           >
             AI Employee Builder
-          </a>
+          </Link>
           .
         </p>
       </div>
