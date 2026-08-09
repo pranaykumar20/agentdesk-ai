@@ -104,6 +104,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "roi",
     flag: "roi",
     planFeature: "roi",
+    badge: "Preview",
   },
   {
     href: "/dashboard/calls",
@@ -141,6 +142,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "contact_center",
     flag: "contact_center",
     planFeature: "contact_center",
+    badge: "Preview",
   },
   {
     href: "/dashboard/live-monitor",
@@ -151,6 +153,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "live_monitor",
     flag: "live_monitor",
     planFeature: "live_monitor",
+    badge: "Preview",
   },
   {
     href: "/dashboard/call-queues",
@@ -161,6 +164,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "call_queues",
     flag: "call_queues",
     planFeature: "call_queues",
+    badge: "Preview",
   },
   {
     href: "/dashboard/ai-employees",
@@ -181,6 +185,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "workflows",
     flag: "workflows",
     planFeature: "workflows_basic",
+    badge: "Preview",
   },
   {
     href: "/dashboard/voice-flows",
@@ -191,6 +196,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "voice_flows",
     flag: "voice_flows",
     planFeature: "voice_flow_templates",
+    badge: "Preview",
   },
   {
     href: "/dashboard/training",
@@ -201,6 +207,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "training",
     flag: "training",
     planFeature: "training_basic",
+    badge: "Preview",
   },
   {
     href: "/dashboard/marketplace",
@@ -211,6 +218,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "marketplace",
     flag: "marketplace",
     planFeature: "marketplace",
+    badge: "Preview",
   },
   {
     href: "/dashboard/crm",
@@ -221,6 +229,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "crm",
     flag: "crm",
     planFeature: "crm",
+    badge: "Preview",
   },
   {
     href: "/dashboard/sms-campaigns",
@@ -231,6 +240,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "sms_campaigns",
     flag: "sms_campaigns",
     planFeature: "sms_campaigns",
+    badge: "Preview",
   },
   {
     href: "/dashboard/whatsapp",
@@ -241,6 +251,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "whatsapp",
     flag: "whatsapp",
     planFeature: "whatsapp",
+    badge: "Preview",
   },
   {
     href: "/dashboard/knowledge-base",
@@ -286,6 +297,7 @@ export const DASHBOARD_NAV: DashboardNavItem[] = [
     resource: "locations",
     flag: "locations",
     planFeature: "locations_multi",
+    badge: "Preview",
   },
   {
     href: "/dashboard/integrations",

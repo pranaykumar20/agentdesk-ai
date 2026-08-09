@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 export type KnowledgeAgentOption = {
   id: string;
   name: string;
+  language?: string | null;
 };
 
 export function AgentSelect({

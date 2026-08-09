@@ -7,8 +7,13 @@ import {
   saveBusinessKnowledge,
   saveOnboardingStep,
 } from "@/modules/onboarding/data";
-import { createAiEmployee, publishAgent } from "@/modules/agents/data";
-import { provisionPhoneNumber } from "@/modules/phone-numbers/data";
+import { countAiEmployees, createAiEmployee, publishAgent } from "@/modules/agents/data";
+import { listPhoneNumbers, provisionPhoneNumber } from "@/modules/phone-numbers/data";
+import { getOrgSubscription } from "@/modules/billing/data";
+import {
+  assertCanCreateAiEmployee,
+  assertCanProvisionPhoneNumber,
+} from "@/modules/billing/plan-limits";
 import { getVoiceProvider } from "@/lib/providers";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +85,9 @@ export async function POST(request: Request) {
       if (!parsed.success) {
         return NextResponse.json({ error: "Invalid AI employee payload" }, { status: 400 });
       }
+      const sub = await getOrgSubscription(ctx.organization.id);
+      const count = await countAiEmployees(ctx.organization.id);
+      assertCanCreateAiEmployee(sub.planKey, count);
       const language = parsed.data.language ?? "en-US";
       // Role training template is applied inside createAiEmployee (identity, flows, guardrails).
       const agent = await createAiEmployee(ctx.organization.id, {
@@ -101,6 +109,9 @@ export async function POST(request: Request) {
       if (!parsed.success) {
         return NextResponse.json({ error: "Invalid phone payload" }, { status: 400 });
       }
+      const sub = await getOrgSubscription(ctx.organization.id);
+      const phones = await listPhoneNumbers(ctx.organization.id);
+      assertCanProvisionPhoneNumber(sub.planKey, phones.length);
       const agentId =
         parsed.data.agentId ??
         (typeof (await getOnboardingProgress(ctx.organization.id)).data.agentId === "string"

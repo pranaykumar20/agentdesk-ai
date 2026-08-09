@@ -17,6 +17,8 @@ export type KnowledgeDocument = {
   /** null = available to all agents in the org */
   agentId: string | null;
   agentName?: string | null;
+  /** Extracted chunk text (or article summary) for prompt injection */
+  contentExcerpt?: string | null;
 };
 
 export type FaqItem = {

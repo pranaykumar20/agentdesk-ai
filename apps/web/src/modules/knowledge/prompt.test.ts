@@ -33,12 +33,14 @@ describe("knowledge prompt section", () => {
         helpfulRate: null,
         updatedAt: new Date().toISOString(),
         agentId: null,
+        contentExcerpt: "Butter chicken $14. Paneer tikka $12.",
       },
     ];
     const appendix = buildKnowledgePromptAppendix({ faqs, documents });
     expect(appendix).toContain("### FAQs");
     expect(appendix).toContain("Q: Hours?");
-    expect(appendix).toContain("- Menu (Food)");
+    expect(appendix).toContain("#### Menu (Food)");
+    expect(appendix).toContain("Butter chicken $14");
   });
 
   it("replaces ## Knowledge Base without duplicating role instructions", () => {

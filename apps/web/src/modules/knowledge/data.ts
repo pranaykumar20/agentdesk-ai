@@ -85,6 +85,76 @@ function applyAgentFilter<T extends { agentId: string | null }>(
   return items.filter((i) => i.agentId == null || i.agentId === filter);
 }
 
+const MAX_CHUNK_CHARS = 1200;
+const MAX_CHUNKS_PER_DOC = 4;
+
+/** Load top chunks per document for prompt injection. */
+async function attachDocumentExcerpts(
+  organizationId: string,
+  documents: KnowledgeDocument[],
+): Promise<KnowledgeDocument[]> {
+  if (documents.length === 0 || !getSupabaseEnv().configured) return documents;
+  try {
+    const supabase = await createClient();
+    const ids = documents.map((d) => d.id);
+    const { data, error } = await supabase
+      .from("knowledge_chunks")
+      .select("document_id, chunk_index, content")
+      .eq("organization_id", organizationId)
+      .in("document_id", ids)
+      .order("chunk_index", { ascending: true });
+
+    if (error || !data) return documents;
+
+    const byDoc = new Map<string, string[]>();
+    for (const row of data) {
+      const docId = row.document_id as string;
+      const list = byDoc.get(docId) ?? [];
+      if (list.length >= MAX_CHUNKS_PER_DOC) continue;
+      const text = String(row.content ?? "").trim();
+      if (!text) continue;
+      list.push(text.slice(0, MAX_CHUNK_CHARS));
+      byDoc.set(docId, list);
+    }
+
+    return documents.map((doc) => ({
+      ...doc,
+      contentExcerpt: (byDoc.get(doc.id) ?? []).join("\n\n") || null,
+    }));
+  } catch {
+    return documents;
+  }
+}
+
+export async function addDocumentChunk(input: {
+  organizationId: string;
+  documentId: string;
+  content: string;
+  chunkIndex?: number;
+}): Promise<void> {
+  const content = input.content.trim();
+  if (!content) return;
+
+  if (!getSupabaseEnv().configured) {
+    // Demo path: stash excerpt on the in-memory doc if present.
+    const docs = getDemoDocuments(input.organizationId);
+    const doc = docs.find((d) => d.id === input.documentId);
+    if (doc) doc.contentExcerpt = content.slice(0, MAX_CHUNK_CHARS * MAX_CHUNKS_PER_DOC);
+    return;
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("knowledge_chunks").insert({
+    organization_id: input.organizationId,
+    document_id: input.documentId,
+    chunk_index: input.chunkIndex ?? 0,
+    content: content.slice(0, 8000),
+  });
+  if (error) {
+    console.warn("[knowledge] failed to insert chunk", error.message);
+  }
+}
+
 async function assertAgentInOrg(
   organizationId: string,
   agentId: string | null | undefined,
@@ -128,12 +198,11 @@ export async function listKnowledgeDocuments(
       const { data, error } = await query;
 
       if (!error && data) {
-        if (data.length > 0 || !shouldUseDemoData()) {
-          return data.map((row) => mapDocument(row as Parameters<typeof mapDocument>[0]));
-        }
+        // Successful empty query = real tenant with no docs (never Smile Dental demo).
+        return data.map((row) => mapDocument(row as Parameters<typeof mapDocument>[0]));
       }
     } catch {
-      // demo
+      // fall through to demo only when Supabase misconfigured/errors
     }
   }
   if (!shouldUseDemoData()) return [];
@@ -163,12 +232,11 @@ export async function listFaqs(
       const { data, error } = await query;
 
       if (!error && data) {
-        if (data.length > 0 || !shouldUseDemoData()) {
-          return data.map((row) => mapFaq(row as Parameters<typeof mapFaq>[0]));
-        }
+        // Successful empty query = real tenant with no FAQs (never Smile Dental demo).
+        return data.map((row) => mapFaq(row as Parameters<typeof mapFaq>[0]));
       }
     } catch {
-      // demo
+      // fall through to demo only when Supabase misconfigured/errors
     }
   }
   if (!shouldUseDemoData()) return [];
@@ -199,11 +267,13 @@ export async function listKnowledgeForAgent(
       ]);
 
       if (!faqRes.error && !docRes.error) {
+        const documents = (docRes.data ?? []).map((row) =>
+          mapDocument(row as Parameters<typeof mapDocument>[0]),
+        );
+        const withExcerpts = await attachDocumentExcerpts(organizationId, documents);
         return {
           faqs: (faqRes.data ?? []).map((row) => mapFaq(row as Parameters<typeof mapFaq>[0])),
-          documents: (docRes.data ?? []).map((row) =>
-            mapDocument(row as Parameters<typeof mapDocument>[0]),
-          ),
+          documents: withExcerpts,
         };
       }
     } catch {
@@ -242,8 +312,11 @@ export async function createKnowledgeDocument(input: {
   mimeType?: string;
   byteSize?: number;
   agentId?: string | null;
+  /** Optional body text stored as knowledge_chunks for prompt sync */
+  content?: string | null;
 }): Promise<KnowledgeDocument> {
   const agentId = await assertAgentInOrg(input.organizationId, input.agentId);
+  const content = input.content?.trim() || null;
 
   if (getSupabaseEnv().configured) {
     try {
@@ -255,15 +328,25 @@ export async function createKnowledgeDocument(input: {
           title: input.title,
           category: input.category ?? "General",
           mime_type: input.mimeType ?? "text/plain",
-          byte_size: input.byteSize ?? 0,
-          status: "processing",
+          byte_size:
+            input.byteSize ?? (content ? new TextEncoder().encode(content).length : 0),
+          status: content ? "published" : "processing",
           agent_id: agentId,
         })
         .select("*, ai_agents(id, name)")
         .single();
 
       if (!error && data) {
-        return mapDocument(data as Parameters<typeof mapDocument>[0]);
+        const doc = mapDocument(data as Parameters<typeof mapDocument>[0]);
+        if (content) {
+          await addDocumentChunk({
+            organizationId: input.organizationId,
+            documentId: doc.id,
+            content,
+          });
+          doc.contentExcerpt = content.slice(0, MAX_CHUNK_CHARS * MAX_CHUNKS_PER_DOC);
+        }
+        return doc;
       }
       if (error) throw new Error(error.message);
     } catch (err) {
@@ -275,22 +358,25 @@ export async function createKnowledgeDocument(input: {
     id: `demo-doc-${crypto.randomUUID().slice(0, 8)}`,
     organizationId: input.organizationId,
     title: input.title,
-    status: "processing",
+    status: content ? "published" : "processing",
     category: input.category ?? "General",
     mimeType: input.mimeType ?? "text/plain",
-    byteSize: input.byteSize ?? 0,
+    byteSize: input.byteSize ?? (content ? content.length : 0),
     viewCount: 0,
     helpfulRate: null,
     updatedAt: new Date().toISOString(),
     agentId,
     agentName: null,
+    contentExcerpt: content,
   };
   addDemoDocument(doc);
 
-  setTimeout(() => {
-    doc.status = "published";
-    doc.updatedAt = new Date().toISOString();
-  }, 0);
+  if (!content) {
+    setTimeout(() => {
+      doc.status = "published";
+      doc.updatedAt = new Date().toISOString();
+    }, 0);
+  }
 
   return doc;
 }

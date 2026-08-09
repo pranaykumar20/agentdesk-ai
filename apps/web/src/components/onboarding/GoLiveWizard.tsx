@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { OnboardingProgress } from "@/modules/onboarding/data";
 import { AGENT_LANGUAGES, voicesForLanguage } from "@/modules/agents/voice-options";
+import { isValidAreaCode, isValidE164, normalizeToE164Hint } from "@/lib/phone";
 
 export function GoLiveWizard({
   initialProgress,
@@ -71,6 +72,17 @@ export function GoLiveWizard({
           Step {step} of 5 · {organizationName}
         </p>
         <h1 className="mt-1 text-2xl font-semibold text-foreground">Launch your AI receptionist</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Quick launch creates and publishes a receptionist. For industry templates, capabilities,
+          draft-first publish, and richer knowledge seeding, use the{" "}
+          <a
+            href="/dashboard/ai-employees/new"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            AI Employee Builder
+          </a>
+          .
+        </p>
       </div>
 
       {step === 2 ? (
@@ -188,15 +200,17 @@ export function GoLiveWizard({
             your AI receptionist.
           </p>
           <div className="space-y-2">
-            <Label htmlFor="areaCode">Preferred area code</Label>
+            <Label htmlFor="areaCode">Preferred area code (3 digits)</Label>
             <Input
               id="areaCode"
+              inputMode="numeric"
+              maxLength={3}
               value={areaCode}
-              onChange={(e) => setAreaCode(e.target.value)}
+              onChange={(e) => setAreaCode(e.target.value.replace(/\D/g, "").slice(0, 3))}
             />
           </div>
           <Button
-            disabled={busy}
+            disabled={busy || !isValidAreaCode(areaCode)}
             onClick={() => void postStep({ step: 4, areaCode })}
           >
             Provision number
@@ -225,11 +239,11 @@ export function GoLiveWizard({
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
-              disabled={busy || !testPhone.trim()}
+              disabled={busy || !isValidE164(normalizeToE164Hint(testPhone))}
               onClick={() =>
                 void postStep({
                   step: 5,
-                  testPhone: testPhone.trim(),
+                  testPhone: normalizeToE164Hint(testPhone),
                   skipTestCall: false,
                 })
               }

@@ -2,13 +2,18 @@ import { afterEach, describe, expect, it } from "vitest";
 import { resolveOrganizationId } from "./write";
 
 describe("resolveOrganizationId", () => {
-  const prev = process.env.DEFAULT_WEBHOOK_ORG_ID;
+  const prevFallback = process.env.DEFAULT_WEBHOOK_ORG_ID;
+  const prevAllow = process.env.ALLOW_WEBHOOK_ORG_FALLBACK;
 
   afterEach(() => {
-    process.env.DEFAULT_WEBHOOK_ORG_ID = prev;
+    if (prevFallback === undefined) delete process.env.DEFAULT_WEBHOOK_ORG_ID;
+    else process.env.DEFAULT_WEBHOOK_ORG_ID = prevFallback;
+    if (prevAllow === undefined) delete process.env.ALLOW_WEBHOOK_ORG_FALLBACK;
+    else process.env.ALLOW_WEBHOOK_ORG_FALLBACK = prevAllow;
   });
 
   it("prefers metadata.organization_id", async () => {
+    process.env.ALLOW_WEBHOOK_ORG_FALLBACK = "true";
     process.env.DEFAULT_WEBHOOK_ORG_ID = "fallback-org";
     await expect(
       resolveOrganizationId({
@@ -27,15 +32,23 @@ describe("resolveOrganizationId", () => {
     ).resolves.toBe("org-camel");
   });
 
-  it("falls back to DEFAULT_WEBHOOK_ORG_ID", async () => {
+  it("falls back to DEFAULT_WEBHOOK_ORG_ID only when allowed", async () => {
+    process.env.ALLOW_WEBHOOK_ORG_FALLBACK = "true";
     process.env.DEFAULT_WEBHOOK_ORG_ID = "fallback-org";
     await expect(resolveOrganizationId({ call_id: "c1", metadata: {} })).resolves.toBe(
       "fallback-org",
     );
   });
 
+  it("does not fall back without ALLOW_WEBHOOK_ORG_FALLBACK", async () => {
+    delete process.env.ALLOW_WEBHOOK_ORG_FALLBACK;
+    process.env.DEFAULT_WEBHOOK_ORG_ID = "fallback-org";
+    await expect(resolveOrganizationId({ call_id: "c1", metadata: {} })).resolves.toBeNull();
+  });
+
   it("returns null when metadata and fallback are missing", async () => {
     delete process.env.DEFAULT_WEBHOOK_ORG_ID;
+    delete process.env.ALLOW_WEBHOOK_ORG_FALLBACK;
     await expect(resolveOrganizationId({ call_id: "c1" })).resolves.toBeNull();
   });
 });

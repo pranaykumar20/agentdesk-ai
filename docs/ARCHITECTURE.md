@@ -72,14 +72,19 @@ AI employees are seeded with role training prompts (identity, conversation flow,
 - **Test call** — optional `POST /api/ai-employees/test-call`
 - **Review** — **Publish & finish** or **Save draft & exit**
 
-List page **New** opens the gallery; each row has **Clone**. Agent editor capabilities are editable and merge into the prompt on save.
+List page **New** opens the gallery; each row has **Clone**. Agent editor capabilities are editable and merge into the prompt on save. Wizard URL persists `?step=&agentId=` for resume. Go-live onboarding remains a short path and links to this builder for advanced setup; both enforce plan limits on create/phone.
+
+Knowledge prompt sync injects FAQ Q/A plus document chunk excerpts (`knowledge_chunks`), not titles alone. Empty Supabase tenants do not fall back to Smile Dental demo data.
+
+Phase-2 shells (workflows, CRM, SMS, etc.) stay behind feature flags and show a **Preview** badge in nav when visible in local demo.
 
 ## Security
 
 - RLS on all tenant tables
-- Webhook signature verification (Retell, Twilio, Stripe)
+- Webhook signature verification (Vapi, Retell, Twilio, Stripe)
 - Service role key only on server (webhooks/admin jobs)
-- Integration secrets stored server-side (encrypt-at-rest planned; not yet implemented)
+- Integration secrets: `encryptIntegrationSecrets` / `decryptIntegrationSecrets` (AES-GCM via `INTEGRATION_SECRETS_ENCRYPTION_KEY`) for `secrets_encrypted` columns when connections are stored
+- Webhook org fallback only when `ALLOW_WEBHOOK_ORG_FALLBACK=true` (single-tenant staging); otherwise resolve from agent/phone/metadata
 - No secrets in client bundles or logs
 
 ## Deployment

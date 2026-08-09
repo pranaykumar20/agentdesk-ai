@@ -31,7 +31,7 @@ export function GenerateKnowledgePanel({ agents }: { agents: KnowledgeAgentOptio
     setFaqs([]);
     setArticle(null);
     try {
-      const agentName = agents.find((a) => a.id === agentId)?.name;
+      const selected = agents.find((a) => a.id === agentId);
       const res = await fetch("/api/knowledge/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -40,7 +40,8 @@ export function GenerateKnowledgePanel({ agents }: { agents: KnowledgeAgentOptio
           requirements,
           faqCount,
           includeArticle,
-          agentName,
+          agentName: selected?.name,
+          language: selected?.language ?? "en-US",
         }),
       });
       const data = (await res.json()) as {
@@ -100,6 +101,7 @@ export function GenerateKnowledgePanel({ agents }: { agents: KnowledgeAgentOptio
             category: article.category,
             mimeType: "text/plain",
             byteSize,
+            content: article.summary,
             agentId: assignedAgentId,
             syncAgents: false,
           }),
@@ -199,9 +201,15 @@ export function GenerateKnowledgePanel({ agents }: { agents: KnowledgeAgentOptio
           {agents.map((agent) => (
             <option key={agent.id} value={agent.id}>
               {agent.name}
+              {agent.language === "te-IN" ? " (Telugu)" : ""}
             </option>
           ))}
         </select>
+        {agents.find((a) => a.id === agentId)?.language === "te-IN" ? (
+          <p className="text-xs text-muted-foreground">
+            Drafts will be generated primarily in Telugu for this employee&apos;s voice path.
+          </p>
+        ) : null}
       </div>
 
       {faqs.length > 0 || article ? (

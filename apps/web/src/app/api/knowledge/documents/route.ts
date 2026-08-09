@@ -10,6 +10,8 @@ const bodySchema = z.object({
   category: z.string().trim().max(80).optional(),
   mimeType: z.string().trim().max(120).optional(),
   byteSize: z.number().int().nonnegative().max(10 * 1024 * 1024).optional(),
+  /** Optional body / summary stored as a knowledge chunk for agent prompts */
+  content: z.string().trim().max(8000).optional(),
   /** null / omitted = all agents */
   agentId: z.string().uuid().nullable().optional(),
   syncAgents: z.boolean().optional().default(true),
@@ -37,6 +39,7 @@ export async function POST(request: Request) {
       category: parsed.data.category,
       mimeType: parsed.data.mimeType,
       byteSize: parsed.data.byteSize,
+      content: parsed.data.content,
       agentId: parsed.data.agentId ?? null,
     });
 

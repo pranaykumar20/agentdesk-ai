@@ -14,6 +14,8 @@ const bodySchema = z.object({
   faqCount: z.number().int().min(1).max(8).optional(),
   includeArticle: z.boolean().optional(),
   agentName: z.string().trim().max(120).optional(),
+  /** BCP-47, e.g. en-US or te-IN */
+  language: z.string().trim().min(2).max(16).optional(),
 });
 
 export async function POST(request: Request) {
@@ -37,6 +39,7 @@ export async function POST(request: Request) {
         brief: parsed.data.requirements,
         question: parsed.data.question,
         businessName: ctx.organization.name,
+        language: parsed.data.language,
       });
       return NextResponse.json({ faq });
     }
@@ -46,6 +49,7 @@ export async function POST(request: Request) {
       businessName: ctx.organization.name,
       industry: ctx.organization.industry ?? undefined,
       agentName: parsed.data.agentName,
+      language: parsed.data.language,
       faqCount: parsed.data.faqCount,
       includeArticle: parsed.data.includeArticle,
     });

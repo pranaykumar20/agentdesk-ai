@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { getServiceRoleKey, getSupabaseEnv } from "@/lib/supabase/env";
+import { webhookOrgFallback } from "@/lib/webhooks/org-fallback";
 import type { CallStatus } from "./types";
 
 type RetellCall = {
@@ -113,7 +114,7 @@ export async function resolveOrganizationId(call: RetellCall): Promise<string | 
   if (fromMeta) return fromMeta;
 
   if (!getSupabaseEnv().configured || !getServiceRoleKey()) {
-    return process.env.DEFAULT_WEBHOOK_ORG_ID?.trim() || null;
+    return webhookOrgFallback();
   }
 
   try {
@@ -124,7 +125,7 @@ export async function resolveOrganizationId(call: RetellCall): Promise<string | 
     console.warn("[calls:write] org resolution failed", err);
   }
 
-  return process.env.DEFAULT_WEBHOOK_ORG_ID?.trim() || null;
+  return webhookOrgFallback();
 }
 
 async function upsertContactAndLead(
@@ -282,7 +283,7 @@ export async function upsertCallFromRetellEvent(raw: unknown): Promise<{ callId:
     (typeof meta.organizationId === "string" && meta.organizationId) ||
     null;
   const organizationId =
-    fromMeta || resolved?.organizationId || process.env.DEFAULT_WEBHOOK_ORG_ID?.trim() || null;
+    fromMeta || resolved?.organizationId || webhookOrgFallback();
 
   if (!organizationId) {
     console.warn("[calls:write] missing organization_id on Retell call", call.call_id);
@@ -549,7 +550,7 @@ export async function upsertCallFromVapiEvent(raw: unknown): Promise<{ callId: s
     null;
 
   const organizationId =
-    fromMeta || resolved?.organizationId || process.env.DEFAULT_WEBHOOK_ORG_ID?.trim() || null;
+    fromMeta || resolved?.organizationId || webhookOrgFallback();
 
   if (!organizationId) {
     console.warn("[calls:write] missing organization_id on Vapi call", call.id);

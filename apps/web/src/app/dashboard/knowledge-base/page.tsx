@@ -43,7 +43,11 @@ export default async function KnowledgeBasePage({
     getKnowledgeMetrics(organization.id, { agentFilter }),
   ]);
 
-  const agents = employees.map((e) => ({ id: e.id, name: e.name }));
+  const agents = employees.map((e) => ({
+    id: e.id,
+    name: e.name,
+    language: e.language,
+  }));
 
   return (
     <div>

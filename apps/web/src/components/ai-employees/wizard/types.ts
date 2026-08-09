@@ -29,6 +29,10 @@ export type WizardState = {
   phoneE164: string | null;
   testPhone: string;
   brief: string;
+  /** Prevent re-POSTing the same FAQ seed on back/forward */
+  knowledgeSeeded: boolean;
+  testCallId: string | null;
+  testCallMessage: string | null;
 };
 
 export function initialWizardState(partial?: Partial<WizardState>): WizardState {
@@ -52,6 +56,9 @@ export function initialWizardState(partial?: Partial<WizardState>): WizardState 
     phoneE164: null,
     testPhone: "",
     brief: "",
+    knowledgeSeeded: false,
+    testCallId: null,
+    testCallMessage: null,
     ...partial,
   };
 }

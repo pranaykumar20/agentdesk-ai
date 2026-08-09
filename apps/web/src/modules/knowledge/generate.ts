@@ -235,6 +235,7 @@ export async function generateKnowledgeDrafts(input: {
   businessName?: string;
   industry?: string;
   agentName?: string;
+  language?: string;
   faqCount?: number;
   includeArticle?: boolean;
 }): Promise<KnowledgeGenerateResult> {
@@ -244,6 +245,11 @@ export async function generateKnowledgeDrafts(input: {
   }
 
   const faqCount = Math.min(8, Math.max(1, input.faqCount ?? 5));
+  const language = input.language?.trim() || "en-US";
+  const isTelugu = language.toLowerCase().startsWith("te");
+  const languageRule = isTelugu
+    ? "Spoken language is Telugu (te-IN): write FAQ questions and answers primarily in Telugu script suitable for TTS, with short English glosses in parentheses for staff editing when helpful."
+    : `Write all FAQ questions and answers in the caller's language locale: ${language}.`;
 
   const system = `You help restaurant and local-business owners build a phone receptionist knowledge base.
 Return ONLY valid JSON with this shape:
@@ -253,17 +259,19 @@ Return ONLY valid JSON with this shape:
 }
 Rules:
 - Write clear, caller-friendly FAQs a voice agent can speak aloud.
+- ${languageRule}
 - Prefer concrete facts from the user requirements; do not invent phone numbers, prices, or addresses that were not provided.
 - If a detail is missing, write a short answer that asks the staff to confirm, or omit that FAQ.
-- Categories like Hours, Menu, Reservations, Parking, Policies, General.
+- Categories like Hours, Menu, Reservations, Parking, Policies, General (category labels may stay English).
 - Keep answers concise (2-5 sentences).
 - Produce exactly ${faqCount} FAQs when enough material exists; fewer is OK if requirements are thin.
-- ${input.includeArticle === false ? "Set article to null." : "Include one article summary suitable as a knowledge article title + short summary."}`;
+- ${input.includeArticle === false ? "Set article to null." : "Include one article summary suitable as a knowledge article title + short summary (same language rules as FAQs)."}`;
 
   const user = [
     input.businessName ? `Business: ${input.businessName}` : null,
     input.industry ? `Industry: ${input.industry}` : null,
     input.agentName ? `AI employee: ${input.agentName}` : null,
+    `Language: ${language}`,
     "",
     "Requirements / facts to encode:",
     requirements,
@@ -305,6 +313,7 @@ export async function generateSingleFaqDraft(input: {
   brief: string;
   question?: string;
   businessName?: string;
+  language?: string;
 }): Promise<GeneratedFaqDraft> {
   const brief = input.brief.trim() || input.question?.trim() || "";
   if (brief.length < 8) {
@@ -320,6 +329,7 @@ export async function generateSingleFaqDraft(input: {
       .filter(Boolean)
       .join("\n"),
     businessName: input.businessName,
+    language: input.language,
     faqCount: 1,
     includeArticle: false,
   });

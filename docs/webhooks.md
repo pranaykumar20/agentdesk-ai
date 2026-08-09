@@ -30,7 +30,8 @@
 | `TWILIO_WEBHOOK_BASE_URL` | Public URL Twilio used when signing |
 | `STRIPE_WEBHOOK_SECRET` | Stripe signature |
 | `SUPABASE_SERVICE_ROLE_KEY` | Persist `webhook_events` / call writes |
-| `DEFAULT_WEBHOOK_ORG_ID` | Fallback org when call metadata omits `organizationId` |
+| `ALLOW_WEBHOOK_ORG_FALLBACK` | Must be `true` to enable org fallback (staging only) |
+| `DEFAULT_WEBHOOK_ORG_ID` | Fallback org when agent/phone/metadata cannot resolve tenant — ignored unless fallback flag is on |
 | `JOBS_PROVIDER` | `local` (default) |
 
 Stripe subscription state is updated only from verified webhooks, not checkout success redirects alone.

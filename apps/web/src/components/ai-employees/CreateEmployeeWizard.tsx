@@ -21,6 +21,7 @@ import {
   defaultGreetingForRole,
 } from "@/modules/agents/role-templates";
 import type { AiEmployeeSummary } from "@/modules/agents/types";
+import { isValidAreaCode, isValidE164, normalizeToE164Hint } from "@/lib/phone";
 import { WizardSteps } from "./wizard/WizardSteps";
 import { initialWizardState, type WizardState } from "./wizard/types";
 
@@ -40,12 +41,20 @@ export function CreateEmployeeWizard({
     initialWizardState({
       capabilities: defaultCapabilities(),
       voice: voicesForLanguage("en-US")[0]!.value,
+      agentId: searchParams.get("agentId"),
+      step: Number(searchParams.get("step") ?? "0") || 0,
     }),
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [promptTouched, setPromptTouched] = useState(false);
   const [cloningId, setCloningId] = useState<string>("");
+  const [maxReachable, setMaxReachable] = useState(() => {
+    const step = Number(searchParams.get("step") ?? "0") || 0;
+    const agentId = searchParams.get("agentId");
+    if (agentId && step >= 2) return Math.max(step, 2);
+    return Math.max(1, step);
+  });
 
   const voices = useMemo(() => voicesForLanguage(state.language), [state.language]);
   const roleCtx = useMemo(
@@ -62,10 +71,22 @@ export function CreateEmployeeWizard({
 
   useEffect(() => {
     const stepParam = Number(searchParams.get("step") ?? "0");
-    if (Number.isFinite(stepParam) && stepParam >= 0 && stepParam <= 6) {
-      setState((s) => ({ ...s, step: stepParam }));
+    const agentId = searchParams.get("agentId");
+    if (!Number.isFinite(stepParam) || stepParam < 0 || stepParam > 6) return;
+
+    // Deep-link guard: steps 2+ require an agentId.
+    if (stepParam >= 2 && !agentId) {
+      setState((s) => ({ ...s, step: 1, agentId: null }));
+      router.replace("/dashboard/ai-employees/new?step=1");
+      return;
     }
-  }, [searchParams]);
+
+    setState((s) => ({
+      ...s,
+      step: stepParam,
+      agentId: agentId ?? s.agentId,
+    }));
+  }, [searchParams, router]);
 
   useEffect(() => {
     if (state.step !== 1 && state.step !== 2) return;
@@ -77,13 +98,25 @@ export function CreateEmployeeWizard({
     }));
   }, [roleCtx, state.step, promptTouched, state.systemPrompt]);
 
+  function syncUrl(step: number, agentId: string | null) {
+    const params = new URLSearchParams();
+    if (step > 0) params.set("step", String(step));
+    if (agentId) params.set("agentId", agentId);
+    const qs = params.toString();
+    router.replace(qs ? `/dashboard/ai-employees/new?${qs}` : "/dashboard/ai-employees/new");
+  }
+
   function go(step: number) {
     setError(null);
+    if (step >= 2 && !state.agentId) {
+      setError("Create the employee in Basics before continuing.");
+      setState((s) => ({ ...s, step: 1 }));
+      syncUrl(1, null);
+      return;
+    }
+    setMaxReachable((m) => Math.max(m, step));
     setState((s) => ({ ...s, step }));
-    const params = new URLSearchParams(searchParams.toString());
-    if (step <= 0) params.delete("step");
-    else params.set("step", String(step));
-    router.replace(`/dashboard/ai-employees/new?${params.toString()}`);
+    syncUrl(step, state.agentId);
   }
 
   function patch(partial: Partial<WizardState>) {
@@ -115,8 +148,16 @@ export function CreateEmployeeWizard({
       });
       const data = (await res.json()) as { id?: string; error?: string };
       if (!res.ok || !data.id) throw new Error(data.error ?? "Failed to create employee");
-      patch({ agentId: data.id, systemPrompt: prompt, greeting });
-      go(2);
+      setMaxReachable(2);
+      setState((s) => ({
+        ...s,
+        agentId: data.id!,
+        systemPrompt: prompt,
+        greeting,
+        step: 2,
+      }));
+      syncUrl(2, data.id!);
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed");
     } finally {
@@ -184,6 +225,7 @@ export function CreateEmployeeWizard({
 
   async function seedKnowledge() {
     if (!state.agentId) throw new Error("Missing agent id");
+    if (state.knowledgeSeeded) return;
     const faqs = state.faqs.filter((f) => f.question.trim() && f.answer.trim());
     if (state.hours.trim()) {
       // Store hours as a FAQ-style policy via FAQ create for sync simplicity.
@@ -216,14 +258,54 @@ export function CreateEmployeeWizard({
       const syncData = (await syncRes.json()) as { error?: string };
       if (!syncRes.ok) throw new Error(syncData.error ?? "Knowledge sync failed");
     }
+    patch({ knowledgeSeeded: true });
+  }
+
+  async function generateKnowledgeDrafts() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/knowledge/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "batch",
+          requirements:
+            state.brief.trim() ||
+            `${state.hours}\nRole: ${state.roleTitle}\nIndustry: ${state.industry}\nBusiness: ${businessName}`,
+          faqCount: 4,
+          includeArticle: false,
+          agentName: state.name,
+          language: state.language,
+        }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        faqs?: Array<{ question: string; answer: string }>;
+      };
+      if (!res.ok) throw new Error(data.error ?? "Knowledge generation failed");
+      if (data.faqs?.length) {
+        patch({
+          faqs: data.faqs.map((f) => ({ question: f.question, answer: f.answer })),
+          knowledgeSeeded: false,
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Knowledge generation failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function provisionPhone() {
     if (!state.agentId) throw new Error("Missing agent id");
+    if (!isValidAreaCode(state.areaCode)) {
+      throw new Error("Enter a valid 3-digit US area code (e.g. 513)");
+    }
     const res = await fetch("/api/phone-numbers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ areaCode: state.areaCode, agentId: state.agentId }),
+      body: JSON.stringify({ areaCode: state.areaCode.trim(), agentId: state.agentId }),
     });
     const data = (await res.json()) as {
       error?: string;
@@ -235,17 +317,31 @@ export function CreateEmployeeWizard({
 
   async function startTestCall() {
     if (!state.agentId) throw new Error("Missing agent id");
+    const toNumber = normalizeToE164Hint(state.testPhone);
+    if (!isValidE164(toNumber)) {
+      throw new Error("Enter your phone in E.164 format (e.g. +15135551234)");
+    }
     const res = await fetch("/api/ai-employees/test-call", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         agentId: state.agentId,
-        toNumber: state.testPhone,
+        toNumber,
         fromNumber: state.phoneE164 ?? undefined,
       }),
     });
-    const data = (await res.json()) as { error?: string };
+    const data = (await res.json()) as {
+      error?: string;
+      externalCallId?: string;
+    };
     if (!res.ok) throw new Error(data.error ?? "Test call failed");
+    patch({
+      testPhone: toNumber,
+      testCallId: data.externalCallId ?? null,
+      testCallMessage: data.externalCallId
+        ? `Call started (id ${data.externalCallId}). Answer your phone to hear the agent.`
+        : "Call started. Answer your phone to hear the agent.",
+    });
   }
 
   async function publishAndFinish() {
@@ -373,7 +469,11 @@ export function CreateEmployeeWizard({
 
   return (
     <div>
-      <WizardSteps step={state.step} />
+      <WizardSteps
+        step={state.step}
+        maxReachable={Math.max(maxReachable, state.step, state.agentId ? 2 : 1)}
+        onSelect={(s) => go(s)}
+      />
       <Card className="max-w-3xl">
         <CardHeader>
           <CardTitle>
@@ -592,17 +692,34 @@ export function CreateEmployeeWizard({
 
           {state.step === 3 ? (
             <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Seed FAQs for this employee (synced to Vapi). Skip if you will add knowledge later.
+                {state.language === "te-IN"
+                  ? " Telugu agents: generate FAQs in Telugu for natural TTS."
+                  : ""}
+              </p>
               <div className="space-y-1">
                 <Label htmlFor="hours">Business hours</Label>
                 <Textarea
                   id="hours"
                   rows={3}
                   value={state.hours}
-                  onChange={(e) => patch({ hours: e.target.value })}
+                  onChange={(e) => patch({ hours: e.target.value, knowledgeSeeded: false })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Starter FAQs</Label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label>Starter FAQs</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => void generateKnowledgeDrafts()}
+                  >
+                    {busy ? "Generating…" : "Generate with AI"}
+                  </Button>
+                </div>
                 {state.faqs.map((faq, idx) => (
                   <div key={idx} className="space-y-1 rounded-lg border border-border p-3">
                     <Input
@@ -612,7 +729,7 @@ export function CreateEmployeeWizard({
                         const faqs = state.faqs.map((f, i) =>
                           i === idx ? { ...f, question: e.target.value } : f,
                         );
-                        patch({ faqs });
+                        patch({ faqs, knowledgeSeeded: false });
                       }}
                     />
                     <Textarea
@@ -623,7 +740,7 @@ export function CreateEmployeeWizard({
                         const faqs = state.faqs.map((f, i) =>
                           i === idx ? { ...f, answer: e.target.value } : f,
                         );
-                        patch({ faqs });
+                        patch({ faqs, knowledgeSeeded: false });
                       }}
                     />
                   </div>
@@ -632,27 +749,42 @@ export function CreateEmployeeWizard({
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={() => patch({ faqs: [...state.faqs, { question: "", answer: "" }] })}
+                  onClick={() =>
+                    patch({
+                      faqs: [...state.faqs, { question: "", answer: "" }],
+                      knowledgeSeeded: false,
+                    })
+                  }
                 >
                   + Add FAQ
                 </Button>
               </div>
+              {state.knowledgeSeeded ? (
+                <p className="text-xs text-muted-foreground">
+                  Knowledge already saved for this draft. Edit FAQs to save again.
+                </p>
+              ) : null}
             </div>
           ) : null}
 
           {state.step === 4 ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Provision a number and bind it to this draft employee (Vapi/Retell). You can skip and
-                add a number later.
+                Provision a number and bind it to this draft employee. Requires a Vapi account with
+                telephony billing. You can skip and add a number later from Phone Numbers.
               </p>
               <div className="space-y-1">
-                <Label htmlFor="areaCode">Area code</Label>
+                <Label htmlFor="areaCode">Area code (3 digits)</Label>
                 <Input
                   id="areaCode"
+                  inputMode="numeric"
+                  maxLength={3}
                   value={state.areaCode}
-                  onChange={(e) => patch({ areaCode: e.target.value })}
+                  onChange={(e) => patch({ areaCode: e.target.value.replace(/\D/g, "").slice(0, 3) })}
                 />
+                {!isValidAreaCode(state.areaCode) && state.areaCode.length > 0 ? (
+                  <p className="text-xs text-destructive">Use a valid US area code (e.g. 513).</p>
+                ) : null}
               </div>
               {state.phoneE164 ? (
                 <p className="text-sm font-medium text-foreground">Assigned: {state.phoneE164}</p>
@@ -663,8 +795,10 @@ export function CreateEmployeeWizard({
           {state.step === 5 ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Place an outbound test call to your phone. A provisioned from-number helps; otherwise
-                the provider default is used when configured.
+                Place an outbound test call to your phone.
+                {state.phoneE164
+                  ? ` From-number: ${state.phoneE164}.`
+                  : " No from-number yet — provider default is used when configured (provision a number in the previous step for best results)."}
               </p>
               <div className="space-y-1">
                 <Label htmlFor="testPhone">Your phone (E.164)</Label>
@@ -672,9 +806,29 @@ export function CreateEmployeeWizard({
                   id="testPhone"
                   placeholder="+15135551234"
                   value={state.testPhone}
-                  onChange={(e) => patch({ testPhone: e.target.value })}
+                  onChange={(e) =>
+                    patch({
+                      testPhone: e.target.value,
+                      testCallId: null,
+                      testCallMessage: null,
+                    })
+                  }
+                  onBlur={() => {
+                    const normalized = normalizeToE164Hint(state.testPhone);
+                    if (normalized !== state.testPhone) patch({ testPhone: normalized });
+                  }}
                 />
+                {state.testPhone.trim() && !isValidE164(normalizeToE164Hint(state.testPhone)) ? (
+                  <p className="text-xs text-destructive">
+                    Use E.164 format, e.g. +15135551234.
+                  </p>
+                ) : null}
               </div>
+              {state.testCallMessage ? (
+                <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
+                  {state.testCallMessage}
+                </p>
+              ) : null}
             </div>
           ) : null}
 
@@ -794,8 +948,12 @@ export function CreateEmployeeWizard({
               <>
                 <Button
                   type="button"
-                  disabled={busy}
+                  disabled={busy || (!state.phoneE164 && !isValidAreaCode(state.areaCode))}
                   onClick={() => {
+                    if (state.phoneE164) {
+                      go(5);
+                      return;
+                    }
                     void (async () => {
                       setBusy(true);
                       setError(null);
@@ -810,38 +968,45 @@ export function CreateEmployeeWizard({
                     })();
                   }}
                 >
-                  {busy ? "Provisioning…" : "Provision & continue"}
+                  {busy ? "Provisioning…" : state.phoneE164 ? "Continue" : "Provision & continue"}
                 </Button>
                 <Button type="button" variant="outline" disabled={busy} onClick={() => go(5)}>
-                  Skip
+                  Skip for now
                 </Button>
               </>
             ) : null}
 
             {state.step === 5 ? (
               <>
-                <Button
-                  type="button"
-                  disabled={busy || !state.testPhone.trim()}
-                  onClick={() => {
-                    void (async () => {
-                      setBusy(true);
-                      setError(null);
-                      try {
-                        await startTestCall();
-                        go(6);
-                      } catch (err) {
-                        setError(err instanceof Error ? err.message : "Test call failed");
-                      } finally {
-                        setBusy(false);
-                      }
-                    })();
-                  }}
-                >
-                  {busy ? "Calling…" : "Start test call & continue"}
-                </Button>
+                {!state.testCallId ? (
+                  <Button
+                    type="button"
+                    disabled={
+                      busy || !isValidE164(normalizeToE164Hint(state.testPhone))
+                    }
+                    onClick={() => {
+                      void (async () => {
+                        setBusy(true);
+                        setError(null);
+                        try {
+                          await startTestCall();
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : "Test call failed");
+                        } finally {
+                          setBusy(false);
+                        }
+                      })();
+                    }}
+                  >
+                    {busy ? "Calling…" : "Start test call"}
+                  </Button>
+                ) : (
+                  <Button type="button" disabled={busy} onClick={() => go(6)}>
+                    Continue to publish
+                  </Button>
+                )}
                 <Button type="button" variant="outline" disabled={busy} onClick={() => go(6)}>
-                  Skip
+                  Skip for now
                 </Button>
               </>
             ) : null}

@@ -21,7 +21,7 @@
 - Set `VOICE_PROVIDER=retell`, `TELEPHONY_PROVIDER=twilio`, `BILLING_PROVIDER=stripe` (mock webhook verify rejects in production)
 - Set a strong `INTERNAL_API_SECRET` (placeholder/`change-me-in-production` is rejected in production)
 - Set `SUPABASE_SERVICE_ROLE_KEY` for webhook idempotency + call sync
-- Prefer Retell call `metadata.organization_id`; use `DEFAULT_WEBHOOK_ORG_ID` only for single-tenant staging
+- Prefer call `metadata.organization_id` (or agent/phone lookup). Set `ALLOW_WEBHOOK_ORG_FALLBACK=true` + `DEFAULT_WEBHOOK_ORG_ID` only for single-tenant staging — never in multi-tenant production
 - Keep `LOCAL_DEMO_MODE=false`
 
 ## Legacy

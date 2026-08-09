@@ -56,7 +56,12 @@ export function buildKnowledgePromptAppendix(input: {
     parts.push("### Reference documents");
     for (const doc of docs) {
       const cat = doc.category ? ` (${doc.category})` : "";
-      parts.push(`- ${doc.title}${cat}`);
+      const excerpt = doc.contentExcerpt?.trim();
+      if (excerpt) {
+        parts.push(`#### ${doc.title}${cat}\n${excerpt}`);
+      } else {
+        parts.push(`- ${doc.title}${cat}`);
+      }
     }
   }
 

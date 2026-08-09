@@ -317,6 +317,36 @@ export type Database = {
           },
         ];
       };
+      knowledge_chunks: {
+        Row: {
+          id: string;
+          organization_id: string;
+          document_id: string;
+          chunk_index: number;
+          content: string;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          document_id: string;
+          chunk_index: number;
+          content: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["knowledge_chunks"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_chunks_document_id_fkey";
+            columns: ["document_id"];
+            isOneToOne: false;
+            referencedRelation: "knowledge_documents";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       daily_analytics: {
         Row: {
           id: string;
