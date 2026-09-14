@@ -4,6 +4,7 @@ import { getOrgSubscription } from "@/modules/billing/data";
 import { planHasFeature } from "@/modules/billing/feature-access";
 import { assertCanProvisionPhoneNumber } from "@/modules/billing/plan-limits";
 import { listPhoneNumbers, provisionPhoneNumber } from "@/modules/phone-numbers/data";
+import { invalidateSnapshotCache } from "@/lib/chat/account-context";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
     const existing = await listPhoneNumbers(ctx.organization.id);
     assertCanProvisionPhoneNumber(sub.planKey, existing.length);
     const number = await provisionPhoneNumber(ctx.organization.id, { areaCode, agentId });
+    invalidateSnapshotCache(ctx.organization.id);
     return NextResponse.json({ number });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to provision number";

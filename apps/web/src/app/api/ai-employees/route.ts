@@ -5,6 +5,7 @@ import { countAiEmployees, createAiEmployee, listAiEmployees } from "@/modules/a
 import { getOrgSubscription } from "@/modules/billing/data";
 import { assertCanCreateAiEmployee } from "@/modules/billing/plan-limits";
 import { planHasFeature } from "@/modules/billing/feature-access";
+import { invalidateSnapshotCache } from "@/lib/chat/account-context";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
     const count = await countAiEmployees(ctx.organization.id);
     assertCanCreateAiEmployee(sub.planKey, count);
     const agent = await createAiEmployee(ctx.organization.id, parsed.data);
+    invalidateSnapshotCache(ctx.organization.id);
     return NextResponse.json({ id: agent.id, employee: agent });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create AI employee";

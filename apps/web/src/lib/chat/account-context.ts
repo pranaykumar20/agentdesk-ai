@@ -26,6 +26,56 @@ import { getVoiceFlowMetrics } from "@/modules/voice-flows/data";
 import { getWhatsappSummary } from "@/modules/whatsapp/data";
 import { getWorkflowMetrics } from "@/modules/workflows/data";
 
+type CacheEntry = {
+  snapshot: AccountSnapshot;
+  cachedAt: number;
+};
+
+const snapshotCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 60_000; // 60 seconds
+
+function getCacheKey(organizationId: string, role: string): string {
+  return `${organizationId}:${role}`;
+}
+
+function getCachedSnapshot(
+  organizationId: string,
+  role: string,
+): AccountSnapshot | null {
+  const key = getCacheKey(organizationId, role);
+  const entry = snapshotCache.get(key);
+
+  if (!entry) return null;
+
+  const age = Date.now() - entry.cachedAt;
+  if (age > CACHE_TTL_MS) {
+    snapshotCache.delete(key);
+    return null;
+  }
+
+  return entry.snapshot;
+}
+
+function setCachedSnapshot(
+  organizationId: string,
+  role: string,
+  snapshot: AccountSnapshot,
+): void {
+  const key = getCacheKey(organizationId, role);
+  snapshotCache.set(key, {
+    snapshot,
+    cachedAt: Date.now(),
+  });
+}
+
+export function invalidateSnapshotCache(organizationId: string): void {
+  for (const key of snapshotCache.keys()) {
+    if (key.startsWith(`${organizationId}:`)) {
+      snapshotCache.delete(key);
+    }
+  }
+}
+
 const SNAPSHOT_RESOURCES = [
   "organization",
   "calls",
@@ -73,8 +123,23 @@ function isErrorResult(value: unknown): value is { error: string } {
 /**
  * Builds a permission-filtered, org-scoped account snapshot for Ava.
  * Organization id always comes from server OrgContext — never from the client.
+ * Cached for 60 seconds to prevent timeout issues from expensive parallel queries.
  */
-export async function buildAccountSnapshot(ctx: OrgContext) {
+export async function buildAccountSnapshot(ctx: OrgContext): Promise<AccountSnapshot> {
+  const organizationId = ctx.organization.id;
+  const role = ctx.role;
+
+  const cached = getCachedSnapshot(organizationId, role);
+  if (cached) {
+    return cached;
+  }
+
+  const snapshot = await buildAccountSnapshotInternal(ctx);
+  setCachedSnapshot(organizationId, role, snapshot);
+  return snapshot;
+}
+
+async function buildAccountSnapshotInternal(ctx: OrgContext) {
   const organizationId = ctx.organization.id;
   const role = ctx.role;
   const allowed = (resource: Resource) => can(role, "read", resource);
@@ -185,7 +250,7 @@ export async function buildAccountSnapshot(ctx: OrgContext) {
   ).length;
   const voicemailFromList = callItems.filter((c) => c.status === "voicemail").length;
 
-  return {
+  const snapshot = {
     generatedAt: new Date().toISOString(),
     readOnly: true,
     organization: {
@@ -544,9 +609,11 @@ export async function buildAccountSnapshot(ctx: OrgContext) {
       settings: "/dashboard/settings",
     },
   };
+
+  return snapshot;
 }
 
-export type AccountSnapshot = Awaited<ReturnType<typeof buildAccountSnapshot>>;
+export type AccountSnapshot = Awaited<ReturnType<typeof buildAccountSnapshotInternal>>;
 
 export function serializeAccountSnapshot(snapshot: AccountSnapshot): string {
   return JSON.stringify(snapshot);

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCurrentOrgContext, getSessionUser } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createAppointment } from "@/modules/appointments/data";
+import { invalidateSnapshotCache } from "@/lib/chat/account-context";
 
 const bodySchema = z.object({
   contactName: z.string().trim().min(2),
@@ -37,5 +38,6 @@ export async function POST(request: Request) {
     endsAt,
   });
 
+  invalidateSnapshotCache(ctx.organization.id);
   return NextResponse.json({ appointment });
 }
